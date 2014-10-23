@@ -5,13 +5,29 @@ import pygame
 
 class Simulation:
   def __init__(self, width, height, num_animats):
+    # initialize pygame
     pygame.init()
+
+    # initialize the screen
     self.size = width, height
     self.screen = pygame.display.set_mode(self.size)
-    self.env = animats.Environment(num_animats)
+
+    #initialize sprites
+    self.bg = pygame.image.load("resources/bg.gif")
+    self.animat_sprite = pygame.image.load("resources/animat.gif")
+    self.animat_sprite.set_colorkey((255,0,255))
+
+    # initialize the model
+    self.env = animats.Environment(num_animats, width, height)
 
   def update(self):
     self.env.update()
+
+    # repaint
+    self.screen.blit(self.bg, (0,0))
+    for animat in self.env.animats:
+      self.screen.blit(self.animat_sprite, (animat.x, animat.y))
+    pygame.display.flip()
 
 if __name__ == "__main__":
   # initialize
@@ -21,8 +37,4 @@ if __name__ == "__main__":
       # check for exit
       if event.type == pygame.QUIT: 
         sys.exit()
-
-    # update model. TODO - put this on a separate thread
     simulation.update()
-    # repaint
-    pygame.display.flip()
