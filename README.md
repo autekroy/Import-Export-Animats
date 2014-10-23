@@ -71,5 +71,8 @@ With enough animats that know how to take foods on their journeys to the other s
 
 #### Details:
 * Python 2.7
-* wxPython
-* pyBrain?
+* pygame
+* pyBrain or neurolab
+
+#### How To Run:
+* python simulation.py
