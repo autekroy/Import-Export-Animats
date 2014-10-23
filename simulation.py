@@ -30,8 +30,8 @@ class Simulation:
     pygame.display.flip()
 
 if __name__ == "__main__":
-  # initialize
-  simulation = Simulation(500,500, 10)
+  # maximum size is 800x600
+  simulation = Simulation(600,600, 100)
   while 1:
     for event in pygame.event.get():
       # check for exit
