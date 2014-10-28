@@ -2,7 +2,7 @@
 import animats
 import sys # sys.exit()
 import pygame
-from Tkinter import *
+import wx
 
 class Simulation:
   def __init__(self, width, height, num_animats):
@@ -18,11 +18,12 @@ class Simulation:
 
     #initialize sprites
     self.bg = pygame.image.load("resources/bg.gif")
-    self.animat_sprite = pygame.image.load("resources/animat.gif")
-    self.animat_sprite.set_colorkey((255,0,255))
+    self.animat_sprite = pygame.image.load("resources/dekutree.png")
+    # self.animat_sprite.set_colorkey((255,0,255))
 
     # initialize the model
     self.env = animats.Environment(num_animats, width, height)
+
 
   def update(self):
     self.env.update()
@@ -40,13 +41,6 @@ if __name__ == "__main__":
   # maximum size is 800x600
   simulation = Simulation(600,600, 100)
 
-  # try to add slider and button
-  # master = Tk()
-  # Button(master, text='Show', command=show_values).pack()
-  # # w = Scale(master, from_=0, to=42)
-  # # w.pack()
-  # w = Scale(master, from_=0, to=200, orient=HORIZONTAL)
-  # w.pack()
 
   while 1: # main loop
     for event in pygame.event.get():

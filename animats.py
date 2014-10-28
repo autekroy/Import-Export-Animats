@@ -30,10 +30,10 @@ class Environment:
         animat.x = 0
 
 moves = {
-  0: [-1, 0], # left
-  1: [1, 0],  # right
-  2: [0, -1], # up
-  3: [0, 1],  # down
+  0: [-2, 0], # left
+  1: [2, 0],  # right
+  2: [0, -2], # up
+  3: [0, 2],  # down
   4: [0, 0]   # no move
 }
 
