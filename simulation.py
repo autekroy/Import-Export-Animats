@@ -13,8 +13,8 @@ class Simulation:
     self.screen = pygame.display.set_mode(self.size)
 
     #initialize sprites
-    self.bg = pygame.image.load("resources/bg.gif")
-    self.animat_sprite = pygame.image.load("resources/animat.gif")
+    self.bg = pygame.image.load("resources/bg.png")
+    self.animat_sprite = pygame.image.load("resources/tree.gif")
     self.animat_sprite.set_colorkey((255,0,255))
 
     # initialize the model
@@ -31,7 +31,7 @@ class Simulation:
 
 if __name__ == "__main__":
   # maximum size is 800x600
-  simulation = Simulation(600,600, 100)
+  simulation = Simulation(600,600, 20)
   while 1:
     for event in pygame.event.get():
       # check for exit
