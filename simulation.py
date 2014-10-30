@@ -21,23 +21,30 @@ class Simulation:
     self.bg = pygame.image.load("resources/bg.png")
     
     # pictures resources for Yao-Jen
-    self.animat_sprite = pygame.image.load("resources/animat.gif")
-    self.fruit_sprite = pygame.image.load("resources/dekutree.png")
-    self.veggie_sprite = pygame.image.load("resources/Oak-Tree-Sprite.png")
+    self.animat_sprite  = pygame.image.load("resources/animat.gif")
+    self.fruitTree      = pygame.image.load("resources/dekutree.png")
+    self.veggieTree     = pygame.image.load("resources/Oak-Tree-Sprite.png")
+    self.fruit          = pygame.image.load("resources/banana3.png")
+    self.veggie         = pygame.image.load("resources/tomato.png")
 
     # picture resources for Alec
-    # self.animat_sprite = pygame.image.load("resources/tree.gif")
+    # self.animat_sprite = pygame.image.load("resources/animat.gif")
     # self.animat_sprite.set_colorkey((255,0,255))
-    # self.fruit_sprite = pygame.image.load("")
-    # self.fruit_sprite.set_colorkey((255,0,255))
-    # self.veggie_sprite = pygame.image.load("")
-    # self.veggie_sprite.set_colorkey((255,0,255))
-
+    # self.fruitTree = pygame.image.load("")
+    # self.fruitTree.set_colorkey((255,0,255))
+    # self.veggieTree = pygame.image.load("")
+    # self.veggieTree.set_colorkey((255,0,255))
+    # self.fruit = pygame.image.load("resources/banana.png")
+    # self.fruit.set_colorkey((255,0,255))
+    # self.veggie = pygame.image.load("resources/banana.png")
+    # self.veggie.set_colorkey((255,0,255))
 
     # modify pictures to appropriate sizes
     self.bg = pygame.transform.scale(self.bg, (1000, 700))
-    self.fruit_sprite = pygame.transform.scale(self.fruit_sprite, (80, 120))
-    self.veggie_sprite = pygame.transform.scale(self.veggie_sprite, (80, 100))
+    self.fruitTree = pygame.transform.scale(self.fruitTree, (80, 120))
+    self.veggieTree = pygame.transform.scale(self.veggieTree, (80, 100))
+    self.fruit = pygame.transform.scale(self.fruit, (26, 26))
+    self.veggie = pygame.transform.scale(self.veggie, (26, 26))
 
     # initialize the model
     self.env = animats.Environment(num_animats, width, height)
@@ -54,13 +61,16 @@ class Simulation:
     self.screen.blit(self.bg, (0,0))
 
     # set environment: place 2 trees on the top-centered and buttom-centered
-    self.screen.blit(self.fruit_sprite, ((self.screenWidth - self.fruit_sprite.get_width())/2, 0)) # on the buttom
-    self.screen.blit(self.veggie_sprite, ((self.screenWidth - self.veggie_sprite.get_width())/2, 
-                                          self.screenHeight - self.veggie_sprite.get_height()))    # on the top
+    self.screen.blit(self.fruitTree, ((self.screenWidth - self.fruitTree.get_width())/2, 0)) # on the top
+    self.screen.blit(self.veggieTree, ((self.screenWidth - self.veggieTree.get_width())/2, 
+                                          self.screenHeight - self.veggieTree.get_height())) # in the buttom
 
     # paint animats
     for animat in self.env.animats:
       self.screen.blit(self.animat_sprite, (animat.x, animat.y))
+      self.screen.blit(self.fruit, (animat.x - self.fruit.get_width()/2, animat.y - self.fruit.get_height()))
+      self.screen.blit(self.veggie, (animat.x + self.veggie.get_width()/2, animat.y - self.veggie.get_height()))
+
     pygame.display.flip()
 
 if __name__ == "__main__":
