@@ -24,14 +24,13 @@ class Simulation:
     self.fruit_sprite = pygame.image.load("resources/dekutree.png")
     self.veggie_sprite = pygame.image.load("resources/dekutree.png")
 
-    self.fruit_sprite = pygame.transform.scale(self.fruit_sprite, (60, 80))
-    self.veggie_sprite = pygame.transform.scale(self.veggie_sprite, (60, 80))
     # picture resources for Alec
     # self.animat_sprite = pygame.image.load("resources/tree.gif")
     # self.animat_sprite.set_colorkey((255,0,255))
 
-
-
+    # modify pictures to appropriate sizes
+    self.fruit_sprite = pygame.transform.scale(self.fruit_sprite, (60, 80))
+    self.veggie_sprite = pygame.transform.scale(self.veggie_sprite, (60, 80))
 
     # initialize the model
     self.env = animats.Environment(num_animats, width, height)
