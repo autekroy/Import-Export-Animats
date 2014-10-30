@@ -19,18 +19,25 @@ class Simulation:
 
     #initialize sprites
     self.bg = pygame.image.load("resources/bg.png")
+    
     # pictures resources for Yao-Jen
     self.animat_sprite = pygame.image.load("resources/animat.gif")
     self.fruit_sprite = pygame.image.load("resources/dekutree.png")
-    self.veggie_sprite = pygame.image.load("resources/dekutree.png")
+    self.veggie_sprite = pygame.image.load("resources/Oak-Tree-Sprite.png")
 
     # picture resources for Alec
     # self.animat_sprite = pygame.image.load("resources/tree.gif")
     # self.animat_sprite.set_colorkey((255,0,255))
+    # self.fruit_sprite = pygame.image.load("")
+    # self.fruit_sprite.set_colorkey((255,0,255))
+    # self.veggie_sprite = pygame.image.load("")
+    # self.veggie_sprite.set_colorkey((255,0,255))
+
 
     # modify pictures to appropriate sizes
-    self.fruit_sprite = pygame.transform.scale(self.fruit_sprite, (60, 80))
-    self.veggie_sprite = pygame.transform.scale(self.veggie_sprite, (60, 80))
+    self.bg = pygame.transform.scale(self.bg, (1000, 700))
+    self.fruit_sprite = pygame.transform.scale(self.fruit_sprite, (80, 120))
+    self.veggie_sprite = pygame.transform.scale(self.veggie_sprite, (80, 100))
 
     # initialize the model
     self.env = animats.Environment(num_animats, width, height)
@@ -46,9 +53,10 @@ class Simulation:
     # repaint
     self.screen.blit(self.bg, (0,0))
 
-    # set environment: trees
-    self.screen.blit(self.fruit_sprite, (self.screenWidth/2, 0))
-    self.screen.blit(self.veggie_sprite, (self.screenWidth/2, self.screenHeight - 80))
+    # set environment: place 2 trees on the top-centered and buttom-centered
+    self.screen.blit(self.fruit_sprite, ((self.screenWidth - self.fruit_sprite.get_width())/2, 0)) # on the buttom
+    self.screen.blit(self.veggie_sprite, ((self.screenWidth - self.veggie_sprite.get_width())/2, 
+                                          self.screenHeight - self.veggie_sprite.get_height()))    # on the top
 
     # paint animats
     for animat in self.env.animats:
@@ -56,8 +64,8 @@ class Simulation:
     pygame.display.flip()
 
 if __name__ == "__main__":
-  # maximum size is 800x600
-  simulation = Simulation(600,600, 20)
+  # (width, height, num_animats),  picture maximum size is 800x600
+  simulation = Simulation(1000, 700, 40)
 
   # try to add slider and button
   # master = Tk()

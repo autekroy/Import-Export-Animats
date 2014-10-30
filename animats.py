@@ -15,9 +15,16 @@ class Environment:
   def update(self):
     for animat in self.animats:
       animat.update()
-      # check death
-      if animat.fruit_hunger < 0 or animat.veggie_hunger < 0:
+      
+      # check death and then reproduce one animat from one of existing animats
+      if animat.fruit_hunger < 0 or animat.veggie_hunger < 0:  
         self.animats.remove(animat)
+
+        # future code: copy one existing animats' neural network and add mutation
+        
+        # place new animat at random position
+        self.animats.append(Animat(random.random()*self.width, random.random()*self.height))
+
       # check ceiling/floor collision
       if animat.y < 0:
         animat.y = 0
@@ -43,8 +50,8 @@ class Animat:
     self.x = x
     self.y = y
     # hunger
-    self.fruit_hunger = 10
-    self.veggie_hunger = 10 
+    self.fruit_hunger = 20 + random.random() * 10;
+    self.veggie_hunger = 20 + random.random() * 10;
 
   def update(self): 
     # movement
@@ -52,7 +59,7 @@ class Animat:
     self.x += moves[decision][0]
     self.y += moves[decision][1]
     # get hungry
-    energyConsume = 0.08 # energy comsumption unit
+    energyConsume = 0.5 # energy comsumption unit
     if decision != 4:
       self.fruit_hunger -= energyConsume
       self.veggie_hunger -= energyConsume
