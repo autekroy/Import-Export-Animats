@@ -52,6 +52,7 @@ class Animat:
     self.x += moves[decision][0]
     self.y += moves[decision][1]
     # get hungry
+    energyConsume = 0.08 # energy comsumption unit
     if decision != 4:
-      self.fruit_hunger -= .001
-      self.veggie_hunger -= .001
+      self.fruit_hunger -= energyConsume
+      self.veggie_hunger -= energyConsume

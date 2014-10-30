@@ -12,17 +12,25 @@ class Simulation:
     # initialize the screen
     self.size = width, height
     self.screen = pygame.display.set_mode(self.size)
-
+    self.screenWidth = width
+    self.screenHeight = height
     # set the name of display windows
     pygame.display.set_caption('Import/Export project')
 
     #initialize sprites
     self.bg = pygame.image.load("resources/bg.png")
-    # for Yao-Jen
-    self.animat_sprite = pygame.image.load("resources/dekutree.png")
-    # for Alec
+    # pictures resources for Yao-Jen
+    self.animat_sprite = pygame.image.load("resources/animat.gif")
+    self.fruit_sprite = pygame.image.load("resources/dekutree.png")
+    self.veggie_sprite = pygame.image.load("resources/dekutree.png")
+
+    self.fruit_sprite = pygame.transform.scale(self.fruit_sprite, (60, 80))
+    self.veggie_sprite = pygame.transform.scale(self.veggie_sprite, (60, 80))
+    # picture resources for Alec
     # self.animat_sprite = pygame.image.load("resources/tree.gif")
     # self.animat_sprite.set_colorkey((255,0,255))
+
+
 
 
     # initialize the model
@@ -32,11 +40,18 @@ class Simulation:
   def update(self):
     self.env.update()
 
+
     # for future 'pause' button, the parameter take milliseconds pause time
     # pygame.time.wait()
 
     # repaint
     self.screen.blit(self.bg, (0,0))
+
+    # set environment: trees
+    self.screen.blit(self.fruit_sprite, (self.screenWidth/2, 0))
+    self.screen.blit(self.veggie_sprite, (self.screenWidth/2, self.screenHeight - 80))
+
+    # paint animats
     for animat in self.env.animats:
       self.screen.blit(self.animat_sprite, (animat.x, animat.y))
     pygame.display.flip()
