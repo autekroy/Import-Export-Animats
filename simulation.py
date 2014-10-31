@@ -21,10 +21,10 @@ class Simulation:
     self.bg = pygame.image.load("resources/bg.png")
     
     # pictures resources for Yao-Jen
-    self.animat_sprite  = pygame.image.load("resources/animat.gif")
+    self.animat_sprite  = pygame.image.load("resources/animat.png")
     self.fruitTree      = pygame.image.load("resources/dekutree.png")
-    self.veggieTree     = pygame.image.load("resources/Oak-Tree-Sprite.png")
-    self.fruit          = pygame.image.load("resources/banana3.png")
+    self.veggieTree     = pygame.image.load("resources/dekutree.png")
+    self.fruit          = pygame.image.load("resources/banana.png")
     self.veggie         = pygame.image.load("resources/tomato.png")
 
     # picture resources for Alec
@@ -40,6 +40,7 @@ class Simulation:
     # self.veggie.set_colorkey((255,0,255))
 
     # modify pictures to appropriate sizes
+    self.animat_sprite = pygame.transform.scale(self.animat_sprite, (32,32))
     self.bg = pygame.transform.scale(self.bg, (1000, 700))
     self.fruitTree = pygame.transform.scale(self.fruitTree, (80, 120))
     self.veggieTree = pygame.transform.scale(self.veggieTree, (80, 100))
