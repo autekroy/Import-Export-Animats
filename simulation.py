@@ -65,7 +65,7 @@ class Simulation:
     self.screen.blit(self.veggieTree, ((self.screenWidth - self.veggieTree.get_width())/2, 
                                           self.screenHeight - self.veggieTree.get_height())) # in the buttom
 
-    # paint animats
+    # paint animats and paint food above animats
     for animat in self.env.animats:
       self.screen.blit(self.animat_sprite, (animat.x, animat.y))
       self.screen.blit(self.fruit, (animat.x - self.fruit.get_width()/2, animat.y - self.fruit.get_height()))
