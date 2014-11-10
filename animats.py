@@ -9,8 +9,8 @@ class Environment:
     self.height = height
     
     # trees
-    self.fruit_tree = Tree(width/2, Tree.radius)
-    self.veggie_tree = Tree(width/2, height - Tree.radius)
+    self.fruit_tree = FruitTree(width/2, Tree.radius)
+    self.veggie_tree = VeggieTree(width/2, height - Tree.radius)
 
     # animats
     self.num_animats = num_animats
@@ -63,7 +63,8 @@ class Environment:
       # if animat.fruit_hunger < 0 or animat.veggie_hunger < 0:  
       #   self.animats.remove(animat)
       #   # future code: copy one existing animats' neural network and add mutation
-      
+     
+# Animats     
 class Animat:
   radius = 30
 
@@ -101,8 +102,35 @@ class Animat:
       self.fruit_hunger -= energyConsume
       self.veggie_hunger -= energyConsume
 
-class Tree:
+# Trees
+class Tree(object):
   radius = 60
+  def __init__(self, x, y):
+    print "initing"
+    self.x = x
+    self.y = y
+      
+class FruitTree(Tree):
+  def __init__(self, x, y):
+    super(FruitTree, self).__init__(x,y)
+    self.foods = (Fruit(self.x - self.radius, self.y), \
+		  Fruit(self.x, self.y + self.radius), \
+		  Fruit(self.x + self.radius, self.y))
+
+class VeggieTree(Tree):
+  def __init__(self, x, y):
+    super(VeggieTree, self).__init__(x,y)
+    self.foods = (Veggie(self.x - self.radius, self.y), \
+		  Veggie(self.x, self.y - self.radius), \
+		  Veggie(self.x + self.radius, self.y))
+
+# Fruits and Veggies
+class Food:
+  radius = 20
   def __init__(self, x, y):
     self.x = x
     self.y = y
+    self.bites = 10
+
+class Veggie(Food): pass
+class Fruit(Food): pass
