@@ -49,13 +49,15 @@ class Simulation:
     self.screen.blit(self.bg, (0,0))
 
     # paint trees
-    self.screen.blit(self.fruitTree, (self.env.fruit_tree_pos))
-    self.screen.blit(self.veggieTree, (self.env.veggie_tree_pos))
+    self.screen.blit(self.fruitTree, \
+                    (self.env.fruit_tree.x - animats.Tree.radius, \
+		    self.env.fruit_tree.y - animats.Tree.radius))
+    self.screen.blit(self.veggieTree, \
+                    (self.env.veggie_tree.x, self.env.veggie_tree.y))
 
     # paint animats
     for animat in self.env.animats:
-      self.screen.blit(pygame.transform.rotate(self.animat_sprite, 360 - animat.direction),
-                      (animat.x, animat.y))
+      self.screen.blit(pygame.transform.rotate(self.animat_sprite, 360 - animat.direction), (animat.x - animats.Animat.radius, animat.y - animats.Animat.radius))
       # self.screen.blit(self.fruit, (animat.x - self.fruit.get_width()/2, animat.y - self.fruit.get_height()))
       # self.screen.blit(self.veggie, (animat.x + self.veggie.get_width()/2, animat.y - self.veggie.get_height()))
 
