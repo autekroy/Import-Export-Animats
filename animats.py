@@ -6,47 +6,56 @@ class Environment:
   def __init__(self, num_animats, width, height):
     self.width = width
     self.height = height
+    self.fruit_tree_pos = ((width - 80) / 2, 0)
+    self.veggie_tree_pos = ((width - 80) / 2, height - 80)  
     self.num_animats = num_animats
     self.animats = []
+    spawn_x = 100
+    spawn_y = 100
     for i in range(0, num_animats):
-      self.animats.append(Animat(random.random() * width,
-                                 random.random() * height, 
-                                 random.random() * 360))
+      if spawn_x > self.width:
+        spawn_x = 100
+        spawn_y += 100
+      self.animats.append(Animat(spawn_x, spawn_y, random.random() * 360))
+      spawn_x += 100
 
   # TODO - Get this on a thread
   def update(self):
     for animat in self.animats:
       animat.update()
       
-      # check animat collision on forward moves
-      new_x = animat.x + math.cos(animat.direction*math.pi / 180)
-      new_y = animat.y + math.sin(animat.direction*math.pi / 180)
-      for other in self.animats:
-	if pow(new_x - other.x, 2) + pow(new_y - other.y, 2) <= Animat.radius:
-	  animat.wants_to_move = False
-	  break
+      can_move = True
       if animat.wants_to_move:
-	animat.x = new_x
-	animat.y = new_y
+        # Where does it want to move?
+        new_x = animat.x + (int)(math.cos(animat.direction*math.pi / 180) * 3)
+        new_y = animat.y + (int)(math.sin(animat.direction*math.pi / 180) * 3)
+
+	# check wall collision
+        if (new_y + 30) > self.height or \
+          (new_x + 30) > self.width or \
+          new_x < 0 or \
+          new_y < 0:
+          can_move = False
+
+        # check animat-animat collision	
+        others = list(self.animats)
+        others.remove(animat)
+        for other in others:
+	  if pow(new_x - other.x, 2) + pow(new_y - other.y, 2) <= Animat.radius * Animat.radius:
+	    can_move = False
+
+        if can_move:
+	  animat.x = new_x
+	  animat.y = new_y
 
       # # check death and then reproduce one animat from one of existing animats
       # if animat.fruit_hunger < 0 or animat.veggie_hunger < 0:  
       #   self.animats.remove(animat)
       #   # future code: copy one existing animats' neural network and add mutation
 
-      # check ceiling/floor collision
-      if animat.y < 0:
-        animat.y = 0
-      if (animat.y + 30) > self.height:
-        animat.y = self.height - 30
-      # wrap-around left and right border
-      if (animat.x + 30) < 0:
-        animat.x = self.width
-      if animat.x > self.width:
-        animat.x = 0
-
+      
 class Animat:
-  radius = 1
+  radius = 30
 
   def __init__(self, x, y, direction):
     # position

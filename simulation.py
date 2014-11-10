@@ -31,7 +31,7 @@ class Simulation:
     # modify pictures to appropriate sizes
     self.animat_sprite = pygame.transform.scale(self.animat_sprite, (32,32))
     self.bg            = pygame.transform.scale(self.bg, (1000, 700))
-    self.fruitTree     = pygame.transform.scale(self.fruitTree, (80, 120))
+    self.fruitTree     = pygame.transform.scale(self.fruitTree, (80, 100))
     self.veggieTree    = pygame.transform.scale(self.veggieTree, (80, 100))
     self.fruit         = pygame.transform.scale(self.fruit, (26, 26))
     self.veggie        = pygame.transform.scale(self.veggie, (26, 26))
@@ -48,12 +48,11 @@ class Simulation:
     # repaint
     self.screen.blit(self.bg, (0,0))
 
-    # set environment: place 2 trees on the top-centered and buttom-centered
-    self.screen.blit(self.fruitTree, ((self.screenWidth - self.fruitTree.get_width())/2, 0)) # on the top
-    self.screen.blit(self.veggieTree, ((self.screenWidth - self.veggieTree.get_width())/2, 
-                                          self.screenHeight - self.veggieTree.get_height())) # in the buttom
+    # paint trees
+    self.screen.blit(self.fruitTree, (self.env.fruit_tree_pos))
+    self.screen.blit(self.veggieTree, (self.env.veggie_tree_pos))
 
-    # paint animats and paint food above animats
+    # paint animats
     for animat in self.env.animats:
       self.screen.blit(pygame.transform.rotate(self.animat_sprite, 360 - animat.direction),
                       (animat.x, animat.y))
@@ -64,7 +63,7 @@ class Simulation:
 
 if __name__ == "__main__":
   # (width, height, num_animats),  picture maximum size is 800x600
-  simulation = Simulation(1000, 700, 40)
+  simulation = Simulation(1000, 700, 15)
 
   # try to add slider and button
   # master = Tk()
