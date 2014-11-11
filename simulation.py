@@ -2,6 +2,7 @@
 import animats
 import sys # sys.exit()
 import pygame
+import math
 
 
 class Simulation:
@@ -67,9 +68,15 @@ class Simulation:
     # paint animats
     for animat in self.env.animats:
       self.screen.blit(pygame.transform.rotate(self.animat_sprite, 360 - animat.direction), (animat.x - animats.Animat.radius, animat.y - animats.Animat.radius))
-      # self.screen.blit(self.fruit, (animat.x - self.fruit.get_width()/2, animat.y - self.fruit.get_height()))
-      # self.screen.blit(self.veggie, (animat.x + self.veggie.get_width()/2, animat.y - self.veggie.get_height()))
-
+      if animat.food:
+	if isinstance(animat.food, animats.Fruit):
+	  self.screen.blit(self.fruit, \
+			   (animat.x - animats.Animat.radius, \
+			    animat.y - animats.Animat.radius))
+	elif isinstance(animat.food, animats.Veggie):
+	  self.screen.blit(self.veggie, \
+			   (animat.x - animats.Animat.radius, \
+			    animat.y - animats.Animat.radius))
     pygame.display.flip()
 
 if __name__ == "__main__":
