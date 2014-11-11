@@ -137,5 +137,6 @@ class Food:
     self.y = y
     self.bites = 10
     
+
 class Veggie(Food): pass
 class Fruit(Food): pass
