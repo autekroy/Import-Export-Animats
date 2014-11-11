@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import random
 import math
+from pybrain.tools.shortcuts import buildNetwork
 
 class Environment:
   def __init__(self, num_animats, width, height):
@@ -75,13 +76,39 @@ class Animat:
     self.y = y
     # orientation (0 - 359 degrees)
     self.direction = direction
-    # hunger
+
+    # smell sensor
+    self.left_smell_fruit = random.random() * 5;
+    self.right_smell_fruit = random.random() * 5;
+    self.left_smell_veggie = random.random() * 5;
+    self.right_smell_veggie = random.random() * 5;
+
+    self.left_smell_animat = random.random() * 5;
+    self.right_smell_animat = random.random() * 5;
+    
+    # hunger sensor
     self.fruit_hunger = 20 + random.random() * 10;
     self.veggie_hunger = 20 + random.random() * 10;
 
+    # touch sensor
+    self.touch_food = random.random() * 5;
+
+    # built simple neural network
+    # 9 input layers, 3 hidden layers, and 1 output layer
+    self.net = buildNetwork(9, 3, 1)  
+    
+
   def update(self): 
     # random action
-    decision = int(random.random()*20)
+    # decision = int(random.random()*20)
+
+    # neural network action
+    # don't know about the output range.. check it later
+    decision = self.net.activate([self.left_smell_fruit, self.right_smell_fruit, \
+          self.left_smell_veggie, self.right_smell_veggie, \
+          self.left_smell_animat, self.right_smell_animat, \
+          self.fruit_hunger, self.veggie_hunger, self.touch_food
+      ])[0] * 100 % 20;
 
     # forward move in 28/30 possibility
     # can't move until collision is detected

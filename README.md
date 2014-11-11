@@ -77,3 +77,9 @@ A species of animats that live in a world where the sources of two foods essenti
 
 #### How To Run:
 * python simulation.py
+
+#### Install
+* pybrain:
+ * $ git clone git://github.com/pybrain/pybrain.git
+ * $ python setup.py install
+ * Tutorials: http://pybrain.org/docs/index.html?highlight=neural%20network
