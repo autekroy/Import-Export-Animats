@@ -94,7 +94,7 @@ class Animat:
     if decision == 18:
       self.direction -= 20
     # rotate right in 1/30 possibility
-    if decision == 19:
+    if decision == 21:
       self.direction += 20
 
     # get hungry
@@ -128,11 +128,11 @@ class VeggieTree(Tree):
 # Fruits and Veggies
 class Food:
   radius = 20
-  def __init__(self, x, y, fresh_level):
+  def __init__(self, x, y):
     self.x = x
     self.y = y
     self.bites = 10
-    self.fresh_level = fresh_level
     
+
 class Veggie(Food): pass
 class Fruit(Food): pass
