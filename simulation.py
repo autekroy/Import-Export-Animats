@@ -54,7 +54,7 @@ class Simulation:
 		    self.env.fruit_tree.y - animats.Tree.radius))
     self.screen.blit(self.veggieTree, \
                     (self.env.veggie_tree.x - animats.Tree.radius, \
-        self.env.veggie_tree.y))
+		    self.env.veggie_tree.y - animats.Tree.radius))
 
     # paint animats
     for animat in self.env.animats:

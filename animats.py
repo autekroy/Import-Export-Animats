@@ -38,14 +38,18 @@ class Environment:
 
 	# check wall collision
         if (new_y + Animat.radius) > self.height \
-        	or (new_x + Animat.radius) > self.width  \
-        	or (new_x - Animat.radius) < 0 \
-        	or (new_y - animat.radius) < 0:
+        or (new_x + Animat.radius) > self.width  \
+        or (new_x - Animat.radius) < 0 \
+        or (new_y - animat.radius) < 0:
           can_move = False
 
 	# check tree collision
 	if pow(new_x - self.fruit_tree.x, 2) \
-	    + pow(new_y - self.fruit_tree.y, 2) <= Tree.radius * Tree.radius:
+	 + pow(new_y - self.fruit_tree.y, 2) \
+	 <= Tree.radius * Tree.radius \
+	or pow(new_x - self.veggie_tree.x, 2) \
+	 + pow(new_y - self.veggie_tree.y, 2) \
+	 <= Tree.radius * Tree.radius:
 	    can_move = False
 
         # check animat-animat collision	
@@ -91,10 +95,10 @@ class Animat:
       self.wants_to_move = False
 
     # rotate left in 1/30 possibility
-    if decision == 18:
+    if decision == 19:
       self.direction -= 20
     # rotate right in 1/30 possibility
-    if decision == 19:
+    if decision == 20:
       self.direction += 20
 
     # get hungry
@@ -128,11 +132,10 @@ class VeggieTree(Tree):
 # Fruits and Veggies
 class Food:
   radius = 20
-  def __init__(self, x, y, fresh_level):
+  def __init__(self, x, y):
     self.x = x
     self.y = y
     self.bites = 10
-    self.fresh_level = fresh_level
     
 class Veggie(Food): pass
 class Fruit(Food): pass
