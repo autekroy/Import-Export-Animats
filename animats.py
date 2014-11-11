@@ -120,11 +120,12 @@ class Animat:
 
     # neural network action
     # don't know about the output range.. check it later
-    decision = self.net.activate([self.left_smell_fruit, self.right_smell_fruit, \
+    output = self.net.activate([self.left_smell_fruit, self.right_smell_fruit, \
           self.left_smell_veggie, self.right_smell_veggie, \
           self.left_smell_animat, self.right_smell_animat, \
           self.fruit_hunger, self.veggie_hunger, self.touch_food
-      ])[0] * 100 % 20;
+      ])[0];
+    decision = abs(output) * 100 % 20;
 
     # forward move in 28/30 possibility
     # can't move until collision is detected
