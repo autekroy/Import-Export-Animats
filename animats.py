@@ -32,9 +32,9 @@ class Environment:
       can_move = True
       if animat.wants_to_move:
         # Where does it want to move?
-        move_step = 3;
-        new_x = animat.x + (int)(math.cos(animat.direction*math.pi / 180) * move_step)
-        new_y = animat.y + (int)(math.sin(animat.direction*math.pi / 180) * move_step)
+        move_step = int(math.cos(animat.direction*math.pi / 180) * 3)
+        new_x = animat.x + move_step 
+        new_y = animat.y + move_step
 
 	# check wall collision
         if (new_y + Animat.radius) > self.height \
@@ -64,10 +64,6 @@ class Environment:
 	  animat.x = new_x
 	  animat.y = new_y
 
-      # # check death and then reproduce one animat from one of existing animats
-      # if animat.fruit_hunger < 0 or animat.veggie_hunger < 0:  
-      #   self.animats.remove(animat)
-      #   # future code: copy one existing animats' neural network and add mutation
      
 # Animats     
 class Animat:
@@ -109,25 +105,25 @@ class Animat:
 
 # Trees
 class Tree(object):
-  radius = 60
+  radius = 45
   def __init__(self, x, y):
-    print "initing_tree"
     self.x = x
     self.y = y
+    self.foods = []
       
 class FruitTree(Tree):
   def __init__(self, x, y):
     super(FruitTree, self).__init__(x,y)
-    self.foods = (Fruit(self.x - self.radius, self.y), \
-		  Fruit(self.x, self.y + self.radius), \
-		  Fruit(self.x + self.radius, self.y))
+    self.foods.append(Fruit(self.x - self.radius, self.y - 10))
+    self.foods.append(Fruit(self.x, self.y + self.radius - 10)) 
+    self.foods.append(Fruit(self.x + self.radius, self.y - 10))
 
 class VeggieTree(Tree):
   def __init__(self, x, y):
     super(VeggieTree, self).__init__(x,y)
-    self.foods = (Veggie(self.x - self.radius, self.y), \
-		  Veggie(self.x, self.y - self.radius), \
-		  Veggie(self.x + self.radius, self.y))
+    self.foods.append(Veggie(self.x - self.radius, self.y))
+    self.foods.append(Veggie(self.x, self.y - self.radius))
+    self.foods.append(Veggie(self.x + self.radius, self.y))
 
 # Fruits and Veggies
 class Food:
