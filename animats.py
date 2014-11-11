@@ -33,17 +33,15 @@ class Environment:
       can_move = True
       if animat.wants_to_move:
         # Where does it want to move?
-        move_step = int(math.cos(animat.direction*math.pi / 180) * 3)
-        new_x = animat.x + move_step 
-        new_y = animat.y + move_step
-
+        step = 3
+	new_x = animat.x + int(math.cos(animat.direction*math.pi / 180) * step)
+        new_y = animat.y + int(math.sin(animat.direction*math.pi / 180) * step)
 	# check wall collision
-        if (new_y + Animat.radius) > self.height \
-        or (new_x + Animat.radius) > self.width  \
-        or (new_x - Animat.radius) < 0 \
+        if (new_y + animat.radius) > self.height \
+        or (new_x + animat.radius) > self.width  \
+        or (new_x - animat.radius) < 0 \
         or (new_y - animat.radius) < 0:
           can_move = False
-
 	# check tree collision
 	if pow(new_x - self.fruit_tree.x, 2) \
 	 + pow(new_y - self.fruit_tree.y, 2) \
@@ -52,15 +50,30 @@ class Environment:
 	 + pow(new_y - self.veggie_tree.y, 2) \
 	 <= Tree.radius * Tree.radius:
 	    can_move = False
-
-        # check animat-animat collision	
+        # check food collision
+	for fruit in self.fruit_tree.foods:
+	  if pow(new_x - fruit.x, 2) + pow(new_y - fruit.y, 2) \
+	   <= Food.radius * Food.radius:
+	    # temporary auto-pickup
+	    if(animat.trypickup(fruit)):
+	      self.fruit_tree.foods.remove(fruit)
+	    can_move = False
+	# check veggie collision
+	for veggie in self.veggie_tree.foods:
+	  if pow(new_x - veggie.x, 2) + pow(new_y - veggie.y, 2) \
+	   <= Food.radius * Food.radius:
+	    # temporary auto-pickup
+	    if(animat.trypickup(veggie)):
+	      self.veggie_tree.foods.remove(veggie)
+	    can_move = False
+	# check animat-animat collision	
         others = list(self.animats)
         others.remove(animat)
         for other in others:
 	  if pow(new_x - other.x, 2) + pow(new_y - other.y, 2) \
 	      <= Animat.radius * Animat.radius:
 	    can_move = False
-
+	# finally move
         if can_move:
 	  animat.x = new_x
 	  animat.y = new_y
@@ -85,7 +98,10 @@ class Animat:
 
     self.left_smell_animat = random.random() * 5;
     self.right_smell_animat = random.random() * 5;
-    
+  
+    # carrying food
+    self.food = None
+
     # hunger sensor
     self.fruit_hunger = 20 + random.random() * 10;
     self.veggie_hunger = 20 + random.random() * 10;
@@ -129,6 +145,13 @@ class Animat:
     if decision != 4:
       self.fruit_hunger -= energyConsume
       self.veggie_hunger -= energyConsume
+
+  def trypickup(self, food):
+    if not self.food:
+      self.food = food
+      return True
+    else:
+      return False
 
 # Trees
 class Tree(object):
