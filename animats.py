@@ -65,6 +65,7 @@ class Environment:
         or (new_x - animat.radius) < 0 \
         or (new_y - animat.radius) < 0:
           animat.touching = True
+
 	# check tree collision
 	if pow(new_x - self.fruit_tree.x, 2) \
 	 + pow(new_y - self.fruit_tree.y, 2) \
@@ -79,15 +80,16 @@ class Environment:
 	   <= Food.radius * Food.radius:
 	    animat.touching = True
 	    if animat.wants_to_pickup:
-	      self.fruit_tree.remove(fruit)
+	      self.fruit_tree.foods.remove(fruit)
 	      animat.food = fruit
+
 	# check veggie collision
 	for veggie in self.veggie_tree.foods:
 	  if pow(new_x - veggie.x, 2) + pow(new_y - veggie.y, 2) \
 	   <= Food.radius * Food.radius:
 	    animat.touching = True
 	    if animat.wants_to_pickup:
-	      self.veggie_tree.remove(veggie)
+	      self.veggie_tree.foods.remove(veggie)
 	      animat.food = veggie
 	# check animat-animat collision	
         others = list(self.animats)
