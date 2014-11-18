@@ -14,6 +14,10 @@ class Environment:
     self.fruit_tree = FruitTree(width/2, Tree.radius)
     self.veggie_tree = VeggieTree(width/2, height - Tree.radius)
 
+    # ground foods
+    self.ground_fruit = []
+    self.ground_veggie = []
+
     # animats
     self.num_animats = num_animats
     self.animats = []
@@ -36,6 +40,10 @@ class Environment:
   # TODO - Get this on a thread
   def update(self):
     for animat in self.animats:
+      if animat.fruit_hunger <= 0 or animat.veggie_hunger <= 0:
+        self.animats.remove(animat)
+        continue
+
       # reset environment sensors
       decision = animat.net.activate([self.scent(animat.x - Animat.radius, \
 						 animat.y, Fruit),
@@ -65,7 +73,6 @@ class Environment:
         or (new_x - animat.radius) < 0 \
         or (new_y - animat.radius) < 0:
           animat.touching = True
-
 	# check tree collision
 	if pow(new_x - self.fruit_tree.x, 2) \
 	 + pow(new_y - self.fruit_tree.y, 2) \
@@ -74,22 +81,21 @@ class Environment:
 	 + pow(new_y - self.veggie_tree.y, 2) \
 	 <= Tree.radius * Tree.radius:
 	  animat.touching = True
-        # check food collision
+  # check food collision
 	for fruit in self.fruit_tree.foods:
 	  if pow(new_x - fruit.x, 2) + pow(new_y - fruit.y, 2) \
 	   <= Food.radius * Food.radius:
 	    animat.touching = True
 	    if animat.wants_to_pickup:
-	      self.fruit_tree.foods.remove(fruit)
+	      # self.fruit_tree.foods.remove(fruit)
 	      animat.food = fruit
-
 	# check veggie collision
 	for veggie in self.veggie_tree.foods:
 	  if pow(new_x - veggie.x, 2) + pow(new_y - veggie.y, 2) \
 	   <= Food.radius * Food.radius:
 	    animat.touching = True
 	    if animat.wants_to_pickup:
-	      self.veggie_tree.foods.remove(veggie)
+	      # self.veggie_tree.foods.remove(veggie)
 	      animat.food = veggie
 	# check animat-animat collision	
         others = list(self.animats)
@@ -98,6 +104,30 @@ class Environment:
 	  if pow(new_x - other.x, 2) + pow(new_y - other.y, 2) \
 	      <= Animat.radius * Animat.radius:
 	    animat.touching = True
+
+    # # check ground fruit
+    # for fruit in self.ground_fruit:
+    #   if pow(new_x - fruit.x, 2) + pow(new_y - fruit.y, 2) \
+    #    <= Food.radius * Food.radius:
+    #     if animat.wants_to_pickup:
+    #       self.ground_fruit.remove(fruit)
+    #       animat.food = fruit
+    # # check ground veggie
+    # for veggie in self.ground_veggie:
+    #   if pow(new_x - veggie.x, 2) + pow(new_y - veggie.y, 2) \
+    #    <= Food.radius * Food.radius:
+    #     if animat.wants_to_pickup:
+    #       self.ground_veggie.remove(veggie)
+    #       animat.food = veggie
+
+  #check put down food
+	if animat.wants_to_putdown:
+	  if isinstance(animat.food, Veggie):
+	   self.ground_veggie.append(Veggie(animat.x, animat.y))
+	  elif isinstance(animat.food, Fruit):
+	    self.ground_fruit.append(Fruit(animat.x, animat.y))
+	  animat.food = None
+
 	# finally move
         if not animat.touching:
 	  animat.x = new_x
@@ -115,8 +145,15 @@ class Animat:
     # orientation (0 - 359 degrees)
     self.direction = direction
 
+    # test put down and pick up
+    tmp = random.random()
+    if tmp >= 0.5:
+      self.food = Veggie(x, y)
+    else:
+      self.food = Fruit(x, y)
+    
     # carrying food
-    self.food = None
+    # self.food = None
 
     # touching anything
     self.touching = False
@@ -144,20 +181,31 @@ class Animat:
     # rotate right 
     self.direction += decision[2]
 
+    # test pick up cuz now it seems it will always pick up
+    tmp  = random.random()
+    self.wants_to_pickup = ((tmp == 0.8) and not self.food)
+
     # pickup
-    self.wants_to_pickup = (decision[3] > 0 and not self.food)
+    # self.wants_to_pickup = ((decision[3] > 0) and not self.food)
 
     # putdown
     self.wants_to_putdown = ((decision[4] > 0) and self.food)
 
     # eat
     if (decision[5] > 0) and self.food:
-      self.eat()
+      self.eat(1)
 
   def get_hungry(self, amount):
     self.fruit_hunger -= amount
     self.veggie_hunger -= amount
-    
+  
+  def eat(self, amount):
+    if isinstance(self.food, Fruit):
+        self.fruit_hunger += amount
+    elif isinstance(self.food, Veggie):
+        self.veggie_hunger += amount     
+    self.food = None
+
 # Trees
 class Tree(object):
   radius = 45
@@ -182,14 +230,14 @@ class VeggieTree(Tree):
 
 # Fruits and Veggies
 class Food:
-  radius = 20
+  radius = 25 #20
   def __init__(self, x, y):
     self.x = x
     self.y = y
     self.bites = 10
-  # scent is inversely proportional to distance
+  # scent is inversely proportional to distance, 0.0000000001 due to possibility of division by zero
   def scent(self, x, y):
-    return 100.0 / (pow(self.x - x, 2) + pow(self.y - y, 2))
+    return 100.0 / (0.000001 + pow(self.x - x, 2) + pow(self.y - y, 2))
     
 
 class Veggie(Food): pass
