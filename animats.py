@@ -116,16 +116,18 @@ class Animat:
 
   def update(self): 
     # random action
-    # decision = int(random.random()*20)
+    decision = int(random.random()*20)
 
     # neural network action
     # don't know about the output range.. check it later
-    output = self.net.activate([self.left_smell_fruit, self.right_smell_fruit, \
-          self.left_smell_veggie, self.right_smell_veggie, \
-          self.left_smell_animat, self.right_smell_animat, \
-          self.fruit_hunger, self.veggie_hunger, self.touch_food
-      ])[0];
-    decision = abs(output) * 100 % 20;
+
+    
+    # output = self.net.activate([self.left_smell_fruit, self.right_smell_fruit, \
+    #       self.left_smell_veggie, self.right_smell_veggie, \
+    #       self.left_smell_animat, self.right_smell_animat, \
+    #       self.fruit_hunger, self.veggie_hunger, self.touch_food
+    #   ])[0];
+    # decision = abs(output) * 100 % 20;
 
     # forward move in 28/30 possibility
     # can't move until collision is detected
