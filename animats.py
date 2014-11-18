@@ -101,13 +101,13 @@ class Environment:
 
   # check ground fruit
 	for fruit in self.ground_fruit:
-		if pow(new_x - fruit.x, 2) + pow(new_y - fruit.y, 2) <= Food.radius * Food.radius:
+		if pow(animat.x - fruit.x, 2) + pow(animat.y - fruit.y, 2) <= Food.radius * Food.radius:
 			if animat.wants_to_pickup:
 				self.ground_fruit.remove(fruit)
 				animat.food = fruit
   # check ground veggie
 	for veggie in self.ground_veggie:
-		if pow(new_x - veggie.x, 2) + pow(new_y - veggie.y, 2) <= Food.radius * Food.radius:
+		if pow(animat.x - veggie.x, 2) + pow(animat.y - veggie.y, 2) <= Food.radius * Food.radius:
 			if animat.wants_to_pickup:
 	    			self.ground_veggie.remove(veggie)
 	    			animat.food = veggie
