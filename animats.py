@@ -99,20 +99,18 @@ class Environment:
 	      # self.veggie_tree.foods.remove(veggie)
 	      animat.food = veggie
 
-      # # check ground fruit
-      # for fruit in self.ground_fruit:
-      #   if pow(new_x - fruit.x, 2) + pow(new_y - fruit.y, 2) \
-      #    <= Food.radius * Food.radius:
-      #     if animat.wants_to_pickup:
-      #       self.ground_fruit.remove(fruit)
-      #       animat.food = fruit
-      # # check ground veggie
-      # for veggie in self.ground_veggie:
-      #   if pow(new_x - veggie.x, 2) + pow(new_y - veggie.y, 2) \
-      #    <= Food.radius * Food.radius:
-      #     if animat.wants_to_pickup:
-      #       self.ground_veggie.remove(veggie)
-      #       animat.food = veggie
+  # check ground fruit
+	for fruit in self.ground_fruit:
+		if pow(new_x - fruit.x, 2) + pow(new_y - fruit.y, 2) <= Food.radius * Food.radius:
+			if animat.wants_to_pickup:
+				self.ground_fruit.remove(fruit)
+				animat.food = fruit
+  # check ground veggie
+	for veggie in self.ground_veggie:
+		if pow(new_x - veggie.x, 2) + pow(new_y - veggie.y, 2) <= Food.radius * Food.radius:
+			if animat.wants_to_pickup:
+	    			self.ground_veggie.remove(veggie)
+	    			animat.food = veggie
 
   # check animat-animat collision	
         others = list(self.animats)
@@ -201,8 +199,8 @@ class Animat:
     # self.wants_to_putdown = ((decision[4] > 0) and self.food)
 
     # eat
-    if (decision[5] > 0) and self.food:
-      self.eat(1)
+    # if (decision[5] > 0) and self.food:
+    #   self.eat(1)
 
   def get_hungry(self, amount):
     self.fruit_hunger += amount
