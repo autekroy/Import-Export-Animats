@@ -2,7 +2,9 @@
 import random
 import math
 import numpy
-from pybrain.tools.shortcuts import buildNetwork
+from pybrain.structure import RecurrentNetwork, FeedForwardNetwork, LinearLayer, SigmoidLayer, FullConnection
+from pybrain.supervised.trainers import BackpropTrainer 
+from pybrain.datasets import SupervisedDataSet
 
 class Environment:
   def __init__(self, num_animats, width, height):
@@ -11,7 +13,10 @@ class Environment:
     self.height = height
     
     # trees
-    self.fruit_tree = FruitTree(width/2, Tree.radius)
+    self.fruit_trees = [FruitTree(width/2, Tree.radius),
+			FruitTree(Tree.radius + Tree.radius, Tree.radius),
+			FruitTree(width - Tree.radius - Tree.radius, \
+				  Tree.radius)]
     self.veggie_tree = VeggieTree(width/2, height - Tree.radius)
 
     # ground foods
@@ -32,7 +37,7 @@ class Environment:
   # get the sum of scents for a type of thing at a certain point
   def scent(self, x, y, thing):
     if thing == Fruit:
-      return sum(map(lambda f:f.scent(x,y), self.fruit_tree.foods))
+      return sum(map(lambda f:f.scent(x,y), self.fruit_trees[0].foods))
     if thing == Veggie:
       return sum(map(lambda f:f.scent(x,y), self.veggie_tree.foods))
 
@@ -47,20 +52,15 @@ class Environment:
       # fruit scent on left side
       has_food = False
       if animat.food:
-	has_food = True
-      decision = animat.net.activate([self.scent(left_sensor_x, \
-						 left_sensor_y, Fruit),
-				      self.scent(right_sensor_x, \
-						 right_sensor_y, Fruit),
-				      self.scent(left_sensor_x, \
-						 left_sensor_y, Veggie),
-				      self.scent(right_sensor_x, \
-						 right_sensor_y, Veggie),
-				      has_food,
-				      animat.fruit_hunger,
-				      animat.veggie_hunger,
-				      animat.touching])  
-      animat.update(decision)
+	has_food = True			    
+      animat.update((self.scent(left_sensor_x, left_sensor_y, Fruit),
+		     self.scent(right_sensor_x, right_sensor_y, Fruit),
+		     self.scent(left_sensor_x, left_sensor_y, Veggie),
+		     self.scent(right_sensor_x, right_sensor_y, Veggie),
+		     has_food,
+		     animat.fruit_hunger,
+		     animat.veggie_hunger,
+		     animat.touching))
 
       if animat.wants_to_move:
 	# assume its not touching anything before we check collision
@@ -76,21 +76,23 @@ class Environment:
         or (new_y - animat.radius) < 0:
           animat.touching = True
 	# check tree collision
-	if pow(new_x - self.fruit_tree.x, 2) \
-	 + pow(new_y - self.fruit_tree.y, 2) \
-	 <= Tree.radius * Tree.radius \
-	or pow(new_x - self.veggie_tree.x, 2) \
+	for tree in self.fruit_trees:
+	  if pow(new_x - tree.x, 2) + pow(new_y - tree.y, 2) \
+	   <= Tree.radius * Tree.radius:
+	   animat.touching = True
+	if pow(new_x - self.veggie_tree.x, 2) \
 	 + pow(new_y - self.veggie_tree.y, 2) \
 	 <= Tree.radius * Tree.radius:
 	  animat.touching = True
 	# check fruit collision
-	for fruit in self.fruit_tree.foods:
-	  if pow(new_x - fruit.x, 2) + pow(new_y - fruit.y, 2) \
-	   <= Food.radius * Food.radius:
-	    animat.touching = True
-	    if animat.wants_to_pickup:
-	      self.fruit_tree.foods.remove(fruit)
-	      animat.food = fruit
+	for tree in self.fruit_trees:
+	  for fruit in tree.foods:
+	    if pow(new_x - fruit.x, 2) + pow(new_y - fruit.y, 2) \
+	     <= Food.radius * Food.radius:
+	      animat.touching = True
+	      if animat.wants_to_pickup:
+		tree.foods.remove(fruit)
+		animat.food = fruit
 	# check veggie collision
 	for veggie in self.veggie_tree.foods:
 	  if pow(new_x - veggie.x, 2) + pow(new_y - veggie.y, 2) \
@@ -114,15 +116,13 @@ class Environment:
 	  if pow(new_x - other.x, 2) + pow(new_y - other.y, 2) \
 	      <= Animat.radius * Animat.radius:
 	    animat.touching = True
-
-  #check put down food
+	#check putdown action
 	if animat.wants_to_putdown:
-	  if isinstance(animat.food, Veggie):
-	   self.foods.append(Veggie(animat.x, animat.y))
-	  elif isinstance(animat.food, Fruit):
+	  if isinstance(animat.food, Fruit):
 	    self.foods.append(Fruit(animat.x, animat.y))
+	  elif isinstance(animat.food, Veggie):
+	    self.foods.append(Veggie(animat.x, animat.y))
 	  animat.food = None
-
 	# finally move
         if not animat.touching:
 	  animat.x = new_x
@@ -150,14 +150,25 @@ class Animat:
     # 8 sensors: 2 for each smell: fruit, veggie; holding; colliding; 2 hungers
     # 3 hidden layers
     # 6 output nodes: turn left/right, move forward, pickup, putdown, eat
-    self.net = buildNetwork(8, 6, 6)  
+    self.net = RecurrentNetwork()
+    self.net.addInputModule(LinearLayer(8, name='in'))
+    self.net.addModule(SigmoidLayer(3, name='hidden'))
+    self.net.addOutputModule(LinearLayer(6, name='out'))
+    self.net.addConnection(FullConnection(self.net['in'], self.net['hidden'], name='c1'))
+    self.net.addConnection(FullConnection(self.net['hidden'], self.net['out'], name='c2'))
+    self.net.addRecurrentConnection(FullConnection(self.net['hidden'], self.net['hidden'], name='c3'))
+    self.net.sortModules()
+    # test training data. Eating food is good? lol
+    self.ds = SupervisedDataSet(8, 6)
+    self.trainer = BackpropTrainer(self.net, self.ds)
     # thresholds for deciding an action
     self.move_threshold = 0
     self.pickup_threshold = 0
     self.putdown_threshold = -10
     self.eat_threshold = -10
     
-  def update(self, decision): 
+  def update(self, sensors):
+    decision = self.net.activate(sensors)
     # get a little hungry no matter what
     self.get_hungry(.01 + abs(decision[1] - decision[2]))
     # move forward
@@ -173,19 +184,25 @@ class Animat:
     self.wants_to_putdown = ((decision[4] > self.putdown_threshold)
 			     and self.food)
     # eat
-    # if (decision[5] > self.eat_threshold) and self.food:
-    #   self.eat()
+    if (decision[5] > self.eat_threshold) and self.food:
+      # eat
+      if isinstance(self.food, Fruit):
+	if self.fruit_hunger < 500:
+	  self.ds.addSample(sensors, decision)
+	  self.trainer.train()
+	self.fruit_hunger = 1000
+      elif isinstance(self.food, Veggie):
+	if self.veggie_hunger < 500:
+	  self.ds.addSample(sensors, decision)
+	  self.trainer.train()
+	self.veggie_hunger = 1000
+      self.food = None
+      
 
   def get_hungry(self, amount):
     self.fruit_hunger -= amount
     self.veggie_hunger -= amount
-
-  def eat(self):
-    if isinstance(self.food, Fruit):
-      self.fruit_hunger += 1
-    elif isinstance(self.food, Veggie):
-      self.veggie_hunger += 1
-    self.food = None
+    
     
 # Trees
 class Tree(object):

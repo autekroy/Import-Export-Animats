@@ -22,7 +22,7 @@ class Simulation:
     #initialize sprites
     self.bg = pygame.image.load("resources/bg.png")
     
-    # pictures resources for Yao-Jen
+    # pictures resources
     self.animat_sprite  = pygame.image.load("resources/animat.png")
     self.fruitTree      = pygame.image.load("resources/dekutree.png")
     self.veggieTree     = pygame.image.load("resources/dekutree.png")
@@ -50,22 +50,22 @@ class Simulation:
     self.screen.blit(self.bg, (0,0))
 
     # paint trees
-    self.screen.blit(self.fruitTree, \
-                    (self.env.fruit_tree.x - animats.Tree.radius, \
-		    self.env.fruit_tree.y - animats.Tree.radius))
+    for tree in self.env.fruit_trees:
+      self.screen.blit(self.fruitTree, \
+		      (tree.x - animats.Tree.radius, 
+		       tree.y - animats.Tree.radius))
+      for fruit in tree.foods:
+	self.screen.blit(self.fruit, \
+		         (fruit.x - animats.Food.radius, \
+			  fruit.y - animats.Food.radius))
+
     self.screen.blit(self.veggieTree, \
                     (self.env.veggie_tree.x - animats.Tree.radius, \
 		    self.env.veggie_tree.y - animats.Tree.radius))
-    # paint foods
-    for	fruit in self.env.fruit_tree.foods:
-      self.screen.blit(self.fruit, \
-		       (fruit.x - animats.Food.radius, \
-			fruit.y - animats.Food.radius))
     for veggie in self.env.veggie_tree.foods:
       self.screen.blit(self.veggie, \
 		       (veggie.x - animats.Food.radius, \
 		        veggie.y - animats.Food.radius))
-
     # paint foods
     for food in self.env.foods:
 	self.screen.blit(self.fruit, \
