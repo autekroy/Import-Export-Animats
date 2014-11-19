@@ -67,10 +67,10 @@ class Simulation:
 		        veggie.y - animats.Food.radius))
 
     # paint foods
-    for fruit in self.env.ground_fruit:
-	self.screen.blit(self.fruit, (fruit.x - animats.Food.radius,fruit.y - animats.Food.radius))
-    for veggie in self.env.ground_veggie:
-	self.screen.blit(self.veggie, (veggie.x - animats.Food.radius,veggie.y - animats.Food.radius))
+    for food in self.env.foods:
+	self.screen.blit(self.fruit, \
+			 (fruit.x - animats.Food.radius, \
+			  fruit.y - animats.Food.radius))
 
     # paint animats
     for animat in self.env.animats:
@@ -84,20 +84,12 @@ class Simulation:
 	  self.screen.blit(self.veggie, \
 			   (animat.x - animats.Animat.radius, \
 			    animat.y - animats.Animat.radius))
+
     pygame.display.flip()
 
 if __name__ == "__main__":
   # (width, height, num_animats),  picture maximum size is 800x600
-  simulation = Simulation(1000, 700, 30)
-
-  # try to add slider and button
-  # master = Tk()
-  # Button(master, text='Show', command=show_values).pack()
-  # # w = Scale(master, from_=0, to=42)
-  # # w.pack()
-  # w = Scale(master, from_=0, to=200, orient=HORIZONTAL)
-  # w.pack()
-
+  simulation = Simulation(1000, 700, 20)
   while 1: # main loop
     for event in pygame.event.get():
       # check for exit
