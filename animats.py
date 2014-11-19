@@ -43,7 +43,14 @@ class Environment:
 
   # TODO - Get this on a thread
   def update(self):
+    deaths = []
     for animat in self.animats:
+      # DEATH
+      if animat.fruit_hunger + animat.veggie_hunger < 0:
+	deaths.append(animat)
+	self.animats.remove(animat)
+	continue
+	
       # reset environment sensors
       left_sensor_x = int(math.cos((animat.direction-90)*math.pi/180)*animat.radius)
       left_sensor_y = int(math.sin((animat.direction-90)*math.pi/180)*animat.radius)
@@ -127,7 +134,10 @@ class Environment:
         if not animat.touching:
 	  animat.x = new_x
 	  animat.y = new_y
-	  animat.get_hungry(1)
+      # reincarnation
+      for animat in deaths:
+	animat.reincarnate(random.choice(self.animats))
+      self.animats += deaths
      
 # Animats     
 class Animat:
@@ -163,20 +173,21 @@ class Animat:
     self.trainer = BackpropTrainer(self.net, self.ds)
     # thresholds for deciding an action
     self.move_threshold = 0
-    self.pickup_threshold = 0
-    self.putdown_threshold = -10
-    self.eat_threshold = -10
+    self.pickup_threshold = -10
+    self.putdown_threshold = -5
+    self.eat_threshold = -5
     
   def update(self, sensors):
     decision = self.net.activate(sensors)
     # get a little hungry no matter what
-    self.get_hungry(.01 + abs(decision[1] - decision[2]))
+    self.get_hungry(.1)
     # move forward
     self.wants_to_move = (decision[0] > self.move_threshold)
     # rotate left 
     self.direction -= decision[1]
     # rotate right 
     self.direction += decision[2]
+
     # pickup
     self.wants_to_pickup = ((decision[3] > self.pickup_threshold) 
 			    and not self.food)
@@ -187,22 +198,24 @@ class Animat:
     if (decision[5] > self.eat_threshold) and self.food:
       # eat
       if isinstance(self.food, Fruit):
-	if self.fruit_hunger < 500:
-	  self.ds.addSample(sensors, decision)
-	  self.trainer.train()
 	self.fruit_hunger = 1000
       elif isinstance(self.food, Veggie):
-	if self.veggie_hunger < 500:
-	  self.ds.addSample(sensors, decision)
-	  self.trainer.train()
 	self.veggie_hunger = 1000
+      self.ds.addSample(sensors, decision)
+      self.trainer.train()
       self.food = None
       
-
   def get_hungry(self, amount):
     self.fruit_hunger -= amount
     self.veggie_hunger -= amount
-    
+
+  # reincarnate by cloning neural net and dataset
+  def reincarnate(self, other):
+    self.fruit_hunger = 1000
+    self.veggie_hunger = 1000
+    self.net = other.net
+    self.ds = other.ds
+    self.trainer = other.trainer
     
 # Trees
 class Tree(object):
