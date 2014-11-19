@@ -114,6 +114,15 @@ class Environment:
 	  if pow(new_x - other.x, 2) + pow(new_y - other.y, 2) \
 	      <= Animat.radius * Animat.radius:
 	    animat.touching = True
+
+  #check put down food
+	if animat.wants_to_putdown:
+	  if isinstance(animat.food, Veggie):
+	   self.foods.append(Veggie(animat.x, animat.y))
+	  elif isinstance(animat.food, Fruit):
+	    self.foods.append(Fruit(animat.x, animat.y))
+	  animat.food = None
+
 	# finally move
         if not animat.touching:
 	  animat.x = new_x
@@ -144,8 +153,8 @@ class Animat:
     self.net = buildNetwork(8, 6, 6)  
     # thresholds for deciding an action
     self.move_threshold = 0
-    self.pickup_threshold = -10
-    self.putdown_threshold = 0
+    self.pickup_threshold = 0
+    self.putdown_threshold = -10
     self.eat_threshold = -10
     
   def update(self, decision): 
@@ -164,8 +173,8 @@ class Animat:
     self.wants_to_putdown = ((decision[4] > self.putdown_threshold)
 			     and self.food)
     # eat
-    if (decision[5] > self.eat_threshold) and self.food:
-      self.eat()
+    # if (decision[5] > self.eat_threshold) and self.food:
+    #   self.eat()
 
   def get_hungry(self, amount):
     self.fruit_hunger -= amount
@@ -173,9 +182,9 @@ class Animat:
 
   def eat(self):
     if isinstance(self.food, Fruit):
-      self.fruit_hunger = 1000
+      self.fruit_hunger += 1
     elif isinstance(self.food, Veggie):
-      self.veggie_hunger = 1000
+      self.veggie_hunger += 1
     self.food = None
     
 # Trees
