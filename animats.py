@@ -67,7 +67,6 @@ class Environment:
       left_sensor_y = int(math.sin((animat.direction-90)*math.pi/180)*animat.radius)
       right_sensor_x = int(math.cos((animat.direction+90)*math.pi/180)*animat.radius)
       right_sensor_y = int(math.sin((animat.direction+90)*math.pi/180)*animat.radius)
-      # fruit scent on left side
       has_food = False
       if animat.food:
 	has_food = True			    
@@ -98,32 +97,14 @@ class Environment:
 	  if pow(new_x - tree.x, 2) + pow(new_y - tree.y, 2) \
 	   <= Tree.radius * Tree.radius:
 	   animat.touching = True
-
-	for tree in self.veggie_trees:     
-		if pow(new_x - tree.x, 2) + pow(new_y - tree.y, 2) \
-		  <= Tree.radius * Tree.radius:
-			animat.touching = True
-	# check fruit collision
-	for tree in self.fruit_trees:
-	  for fruit in tree.foods:
-	    if pow(new_x - fruit.x, 2) + pow(new_y - fruit.y, 2) \
+	  for food in tree.foods:
+	    if pow(new_x - food.x, 2) + pow(new_y - food.y, 2) \
 	     <= Food.radius * Food.radius:
-	      animat.touching = True
 	      if animat.wants_to_pickup:
-		tree.foods.remove(fruit)
-		animat.food = fruit
-	# check veggie collision
-	for tree in self.veggie_trees:
-		for veggie in tree.foods:
-			if pow(new_x - veggie.x, 2) + pow(new_y - veggie.y, 2) \
-  	   <= Food.radius * Food.radius:
-				animat.touching = True
-				if animat.wants_to_pickup:
-					tree.foods.remove(veggie)
-					animat.food = veggie
-
-	# check food collision
-	for food in all_foods:
+		animat.food = food
+		tree.foods.remove(food)
+	# check food on the ground
+	for food in self.foods:
 	  if pow(new_x - food.x, 2) + pow(new_y - food.y, 2) \
 	   <= Food.radius * Food.radius:
 	    if animat.wants_to_pickup:
@@ -181,7 +162,10 @@ class Animat:
     self.net.addConnection(FullConnection(self.net['hidden'], self.net['out'], name='c2'))
     self.net.addRecurrentConnection(FullConnection(self.net['hidden'], self.net['hidden'], name='c3'))
     self.net.sortModules()
-    # test training data. 
+    # Learn by memory:
+    # - Keep a short-term memory of actions
+    # - When food is found, add those actions to the supervised data set
+    self.memories = []
     self.ds = SupervisedDataSet(8, 6)
     self.trainer = BackpropTrainer(self.net, self.ds)
     # thresholds for deciding an action
@@ -192,6 +176,9 @@ class Animat:
     
   def update(self, sensors):
     decision = self.net.activate(sensors)
+    self.memories.append((sensors, decision))
+    if len(self.memories) > 10:
+      self.memories.remove(self.memories[0])
     #self.ds.addSample(sensors, decision)
     # get a little hungry no matter what
     self.get_hungry(.1)
@@ -210,7 +197,6 @@ class Animat:
 			     and self.food)
     # eat
     if (decision[5] > self.eat_threshold) and self.food:
-      # eat
       if isinstance(self.food, Fruit):
 	self.fruit_hunger = 1000
       elif isinstance(self.food, Veggie):
@@ -228,8 +214,6 @@ class Animat:
     self.fruit_hunger = 1000
     self.veggie_hunger = 1000
     self.net = other.net
-    #self.ds = other.ds
-    #self.trainer = other.trainer
     
 # Trees
 class Tree(object):
