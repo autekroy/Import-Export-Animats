@@ -89,7 +89,7 @@ class Simulation:
 
 if __name__ == "__main__":
   # (width, height, num_animats),  picture maximum size is 800x600
-  simulation = Simulation(1000, 700, 20)
+  simulation = Simulation(1000, 700, 15)
   while 1: # main loop
     for event in pygame.event.get():
       # check for exit

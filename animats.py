@@ -201,7 +201,7 @@ class Animat:
 	self.fruit_hunger = 1000
       elif isinstance(self.food, Veggie):
 	self.veggie_hunger = 1000
-      self.ds.addSample(sensors, decision)
+      map(lambda x:self.ds.addSample(x[0],x[1]), self.memories)
       self.trainer.train()
       self.food = None
       
