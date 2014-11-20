@@ -41,98 +41,110 @@ class Environment:
   def scent(self, x, y, things):
     return sum(map(lambda f:f.scent(x,y), things))
 
+  def spawn(self, animat):
+    spawns_x = map(lambda f:f*10, range(0, self.width))
+    spawns_y = map(lambda f:f*10, range(0, self.height))
+    random.shuffle(spawns_x)
+    random.shuffle(spawns_y)
+    for i in spawns_x:
+      for j in spawns_y:
+	if not self.collision(i,j, self.animats):
+	  new_animat = Animat(i, j, random.random() * 360)
+	  new_animat.net = animat.net
+	  self.animats.append(new_animat)
+	  animat.pregnant = False
+	  return
+
+  def all_fruits(self):
+    return [fruit \
+	    for fruits in map(lambda f:f.foods, self.fruit_trees + [self]) \
+	    for fruit in fruits] 
+  def all_veggies(self):
+    return [veggie \
+	    for veggies in map(lambda f:f.foods, self.veggie_trees + [self]) \
+	    for veggie in veggies]
+
   # TODO - Get this on a thread
   def update(self):
-    # some data
+    # precompute data
     deaths = []
-    all_fruits = [fruit \
-		  for fruits in map(lambda f:f.foods, self.fruit_trees) \
-		  for fruit in fruits] 
-    all_veggies = [veggie \
-		   for veggies in map(lambda f:f.foods, self.veggie_trees) \
-		   for veggie in veggies]
-    for food in self.foods:
-      if isinstance(food, Fruit):
-	all_fruits.append(food)
-      elif isinstance(food, Veggie):
-	all_veggies.append(food)
+    # foods
+    fruits = self.all_fruits()
+    veggies = self.all_veggies()
+    # food sources
+    sources = self.fruit_trees + self.veggie_trees + [self]
     for animat in self.animats:
-      # DEATH
-      if animat.fruit_hunger + animat.veggie_hunger < 0:
-	deaths.append(animat)
-	self.animats.remove(animat)
-	continue
       # reset environment sensors
-      left_sensor_x = int(math.cos((animat.direction-90)*math.pi/180)*animat.radius)
-      left_sensor_y = int(math.sin((animat.direction-90)*math.pi/180)*animat.radius)
-      right_sensor_x = int(math.cos((animat.direction+90)*math.pi/180)*animat.radius)
-      right_sensor_y = int(math.sin((animat.direction+90)*math.pi/180)*animat.radius)
+      left_sensor_x = int(math.cos((animat.direction-90)*math.pi/180)*animat.radius)+animat.x
+      left_sensor_y = int(math.sin((animat.direction-90)*math.pi/180)*animat.radius)+animat.y
+      right_sensor_x = int(math.cos((animat.direction+90)*math.pi/180)*animat.radius)+animat.x
+      right_sensor_y = int(math.sin((animat.direction+90)*math.pi/180)*animat.radius)+animat.y
       has_food = False
       if animat.food:
 	has_food = True			    
-      animat.update((self.scent(left_sensor_x, left_sensor_y, all_fruits),
-		     self.scent(right_sensor_x, right_sensor_y, all_fruits),
-		     self.scent(left_sensor_x, left_sensor_y, all_veggies),
-		     self.scent(right_sensor_x, right_sensor_y, all_veggies),
+      animat.update((self.scent(left_sensor_x, left_sensor_y, fruits),
+		     self.scent(right_sensor_x, right_sensor_y, fruits),
+		     self.scent(left_sensor_x, left_sensor_y, veggies),
+		     self.scent(right_sensor_x, right_sensor_y, veggies),
 		     has_food,
 		     animat.fruit_hunger,
 		     animat.veggie_hunger,
 		     animat.touching))
 
       if animat.wants_to_move:
-	# assume its not touching anything before we check collision
-	animat.touching = False 
-        # Where does it want to move?
+	# Where does it want to move?
         step = 3
 	new_x = animat.x + int(math.cos(animat.direction*math.pi / 180) * step)
         new_y = animat.y + int(math.sin(animat.direction*math.pi / 180) * step)
-	# check wall collision
-        if (new_y + animat.radius) > self.height \
-        or (new_x + animat.radius) > self.width  \
-        or (new_x - animat.radius) < 0 \
-        or (new_y - animat.radius) < 0:
-          animat.touching = True
-	# check tree and food on tree collision
-	for tree in self.fruit_trees + self.veggie_trees:
-	  if pow(new_x - tree.x, 2) + pow(new_y - tree.y, 2) \
-	   <= Tree.radius * Tree.radius:
-	   animat.touching = True
-	  for food in tree.foods:
-	    if pow(new_x - food.x, 2) + pow(new_y - food.y, 2) \
-	     <= Food.radius * Food.radius:
-	      if animat.wants_to_pickup:
-		animat.food = food
-		tree.foods.remove(food)
-	# check food on the ground
-	for food in self.foods:
-	  if pow(new_x - food.x, 2) + pow(new_y - food.y, 2) \
-	   <= Food.radius * Food.radius:
-	    if animat.wants_to_pickup:
-	      animat.food = food
-	      self.foods.remove(food)
-	# check animat-animat collision	
-        others = list(self.animats)
-        others.remove(animat)
-        for other in others:
-	  if pow(new_x - other.x, 2) + pow(new_y - other.y, 2) \
-	      <= Animat.radius * Animat.radius:
-	    animat.touching = True
-	#check putdown action
+	others = list(self.animats)
+	others.remove(animat)
+	obstacle = self.collision(new_x, new_y, others)
+	# check pickup
+	if isinstance(obstacle, Food):
+	  for source in sources:
+	    if obstacle in source.foods:
+	      source.foods.remove(obstacle)
+	      animat.food = obstacle
+	# check putdown action
 	if animat.wants_to_putdown:
 	  if isinstance(animat.food, Fruit):
 	    self.foods.append(Fruit(animat.x, animat.y))
 	  elif isinstance(animat.food, Veggie):
 	    self.foods.append(Veggie(animat.x, animat.y))
 	  animat.food = None
-	# finally move
-        if not animat.touching:
+	# finally move if possible
+        if not obstacle:
 	  animat.x = new_x
 	  animat.y = new_y
-      # reincarnation
-      for animat in deaths:
-	animat.reincarnate(random.choice(self.animats))
-      self.animats += deaths
-     
+	# birth
+	if animat.pregnant:
+	  self.spawn(animat)
+	# DEATH
+	if animat.fruit_hunger + animat.veggie_hunger < 0:
+	  deaths.append(animat)
+	  self.animats.remove(animat)
+  
+  def collision(self, x, y, animats):
+    # check wall collision
+    if (y + Animat.radius) > self.height or (x + Animat.radius) > self.width  \
+    or (x - Animat.radius) < 0 or (y - Animat.radius) < 0:
+      return self
+    # check tree collision
+    for tree in self.fruit_trees + self.veggie_trees:
+      if pow(x - tree.x, 2) + pow(y - tree.y, 2) <= Tree.radius * Tree.radius:
+	return tree
+    # check food collision
+    for food in self.all_fruits() + self.all_veggies():
+      if pow(x - food.x, 2) + pow(y - food.y, 2) <= Food.radius * Food.radius:
+	return food
+    # check animat-animat collision	
+    for animat in animats:
+      if pow(x - animat.x, 2) + pow(y - animat.y, 2) \
+       <= Animat.radius * Animat.radius:
+	return animat
+    # no collision
+    return None
+
 # Animats     
 class Animat:
   radius = 30
@@ -150,6 +162,8 @@ class Animat:
     # hunger sensor
     self.fruit_hunger = 1000
     self.veggie_hunger = 1000
+    # ready to spawn a child
+    self.pregnant = False
     # neural net
     # 8 sensors: 2 for each smell: fruit, veggie; holding; colliding; 2 hungers
     # 3 hidden layers
@@ -177,11 +191,11 @@ class Animat:
   def update(self, sensors):
     decision = self.net.activate(sensors)
     self.memories.append((sensors, decision))
-    if len(self.memories) > 10:
+    if len(self.memories) > 50:
       self.memories.remove(self.memories[0])
     #self.ds.addSample(sensors, decision)
     # get a little hungry no matter what
-    self.get_hungry(.1)
+    self.get_hungry(.5)
     # move forward
     self.wants_to_move = (decision[0] > self.move_threshold)
     # rotate left 
@@ -197,6 +211,7 @@ class Animat:
 			     and self.food)
     # eat
     if (decision[5] > self.eat_threshold) and self.food:
+      self.pregnant = True
       if isinstance(self.food, Fruit):
 	self.fruit_hunger = 1000
       elif isinstance(self.food, Veggie):
