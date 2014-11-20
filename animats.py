@@ -102,7 +102,7 @@ class Environment:
 	# check pickup
 	if isinstance(obstacle, Food):
 	  for source in sources:
-	    if obstacle in source.foods:
+	    if obstacle in source.foods and animat.wants_to_pickup:
 	      source.foods.remove(obstacle)
 	      animat.food = obstacle
 	# check putdown action
@@ -185,7 +185,7 @@ class Animat:
     # thresholds for deciding an action
     self.move_threshold = 0
     self.pickup_threshold = -10
-    self.putdown_threshold = -5
+    self.putdown_threshold = 0.5
     self.eat_threshold = -5
     
   def update(self, sensors):
@@ -209,13 +209,14 @@ class Animat:
     # putdown
     self.wants_to_putdown = ((decision[4] > self.putdown_threshold)
 			     and self.food)
+    print decision[4]
     # eat
-    if (decision[5] > self.eat_threshold) and self.food:
-      self.pregnant = True
-      if isinstance(self.food, Fruit):
+    if (decision[5] > self.eat_threshold) and self.food and ((self.fruit_hunger < 800) or (self.veggie_hunger < 800)):
+      if isinstance(self.food, Fruit) and self.fruit_hunger < 800:
 	self.fruit_hunger = 1000
-      elif isinstance(self.food, Veggie):
+      elif isinstance(self.food, Veggie) and self.veggie_hunger < 800:
 	self.veggie_hunger = 1000
+      self.pregnant = True
       map(lambda x:self.ds.addSample(x[0],x[1]), self.memories)
       self.trainer.train()
       self.food = None
