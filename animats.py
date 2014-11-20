@@ -110,7 +110,7 @@ class Environment:
   	   <= Food.radius * Food.radius:
 				animat.touching = True
 				if animat.wants_to_pickup:
-					self.veggie_trees.foods.remove(veggie)
+					tree.foods.remove(veggie)
 					animat.food = veggie
 	# check food on the ground
 	for food in self.foods:
