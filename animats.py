@@ -13,15 +13,15 @@ class Environment:
     self.height = height
     
     # trees
-    self.fruit_trees = [FruitTree(width/2, Tree.radius),
-			FruitTree(Tree.radius + Tree.radius, Tree.radius),
+    self.fruit_trees = [FruitTree(width/2, Tree.radius), \
+			FruitTree(Tree.radius + Tree.radius, Tree.radius), \
 			FruitTree(width - Tree.radius - Tree.radius, \
 				  Tree.radius)]
-
-    self.veggie_trees = [VeggieTree(width/2, height - Tree.radius),
-      VeggieTree(Tree.radius + Tree.radius, height - Tree.radius),
-      VeggieTree(width - Tree.radius - Tree.radius, \
-          height - Tree.radius)]
+    self.veggie_trees = [VeggieTree(width/2, height - Tree.radius), \
+			 VeggieTree(Tree.radius + Tree.radius, 
+				    height - Tree.radius), \
+			 VeggieTree(width - Tree.radius - Tree.radius, \
+				    height - Tree.radius)]
     # ground foods
     self.foods = []
 
@@ -37,23 +37,32 @@ class Environment:
       self.animats.append(Animat(spawn_x, spawn_y, random.random() * 360))
       spawn_x += 100
 
-  # get the sum of scents for a type of thing at a certain point
-  def scent(self, x, y, thing):
-    if thing == Fruit:
-      return sum(map(lambda f:f.scent(x,y), self.fruit_trees[0].foods))
-    if thing == Veggie:
-      return sum(map(lambda f:f.scent(x,y), self.veggie_trees[0].foods))
+  # get the sum of scents for a list of things
+  def scent(self, x, y, things):
+    return sum(map(lambda f:f.scent(x,y), things))
 
   # TODO - Get this on a thread
   def update(self):
+    # some data
     deaths = []
+    all_fruits = [fruit \
+		  for fruits in map(lambda f:f.foods, self.fruit_trees) \
+		  for fruit in fruits] 
+    all_veggies = [veggie \
+		   for veggies in map(lambda f:f.foods, self.veggie_trees) \
+		   for veggie in veggies]
+    for food in self.foods:
+      if isinstance(food, Fruit):
+	all_fruits.append(food)
+      elif isinstance(food, Veggie):
+	all_veggies.append(food)
+    all_foods = all_veggies + all_fruits
     for animat in self.animats:
       # DEATH
       if animat.fruit_hunger + animat.veggie_hunger < 0:
 	deaths.append(animat)
 	self.animats.remove(animat)
 	continue
-	
       # reset environment sensors
       left_sensor_x = int(math.cos((animat.direction-90)*math.pi/180)*animat.radius)
       left_sensor_y = int(math.sin((animat.direction-90)*math.pi/180)*animat.radius)
@@ -63,10 +72,10 @@ class Environment:
       has_food = False
       if animat.food:
 	has_food = True			    
-      animat.update((self.scent(left_sensor_x, left_sensor_y, Fruit),
-		     self.scent(right_sensor_x, right_sensor_y, Fruit),
-		     self.scent(left_sensor_x, left_sensor_y, Veggie),
-		     self.scent(right_sensor_x, right_sensor_y, Veggie),
+      animat.update((self.scent(left_sensor_x, left_sensor_y, all_fruits),
+		     self.scent(right_sensor_x, right_sensor_y, all_fruits),
+		     self.scent(left_sensor_x, left_sensor_y, all_veggies),
+		     self.scent(right_sensor_x, right_sensor_y, all_veggies),
 		     has_food,
 		     animat.fruit_hunger,
 		     animat.veggie_hunger,
@@ -86,10 +95,11 @@ class Environment:
         or (new_y - animat.radius) < 0:
           animat.touching = True
 	# check tree collision
-	for tree in self.fruit_trees:
+	for tree in self.fruit_trees + self.veggie_trees:
 	  if pow(new_x - tree.x, 2) + pow(new_y - tree.y, 2) \
 	   <= Tree.radius * Tree.radius:
 	   animat.touching = True
+
 	for tree in self.veggie_trees:     
 		if pow(new_x - tree.x, 2) + pow(new_y - tree.y, 2) \
 		  <= Tree.radius * Tree.radius:
@@ -112,14 +122,18 @@ class Environment:
 				if animat.wants_to_pickup:
 					tree.foods.remove(veggie)
 					animat.food = veggie
-	# check food on the ground
-	for food in self.foods:
+
+	# check food collision
+	for food in all_foods:
 	  if pow(new_x - food.x, 2) + pow(new_y - food.y, 2) \
 	   <= Food.radius * Food.radius:
-	    animat.touching = True
 	    if animat.wants_to_pickup:
-	      self.foods.remove(food)
-	      animat.food = food
+	      sources = self.fruit_trees + self.veggie_trees
+	      sources.append(self)
+	      for source in sources:
+		if food in source.foods:
+		  source.foods.remove(food)
+		  animat.food = food
 	# check animat-animat collision	
         others = list(self.animats)
         others.remove(animat)
@@ -172,7 +186,7 @@ class Animat:
     self.net.addConnection(FullConnection(self.net['hidden'], self.net['out'], name='c2'))
     self.net.addRecurrentConnection(FullConnection(self.net['hidden'], self.net['hidden'], name='c3'))
     self.net.sortModules()
-    # test training data. Eating food is good? lol
+    # test training data. 
     self.ds = SupervisedDataSet(8, 6)
     self.trainer = BackpropTrainer(self.net, self.ds)
     # thresholds for deciding an action
@@ -183,6 +197,7 @@ class Animat:
     
   def update(self, sensors):
     decision = self.net.activate(sensors)
+    self.ds.addSample(sensors, decision)
     # get a little hungry no matter what
     self.get_hungry(.1)
     # move forward
@@ -218,8 +233,8 @@ class Animat:
     self.fruit_hunger = 1000
     self.veggie_hunger = 1000
     self.net = other.net
-    self.ds = other.ds
-    self.trainer = other.trainer
+    #self.ds = other.ds
+    #self.trainer = other.trainer
     
 # Trees
 class Tree(object):

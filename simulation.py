@@ -52,22 +52,21 @@ class Simulation:
     # paint trees
     for tree in self.env.fruit_trees:
       self.screen.blit(self.fruitTree, \
-		      (tree.x - animats.Tree.radius, 
-		       tree.y - animats.Tree.radius))
+		       (tree.x - animats.Tree.radius, 
+		        tree.y - animats.Tree.radius))
       for fruit in tree.foods:
 	self.screen.blit(self.fruit, \
 		         (fruit.x - animats.Food.radius, \
 			  fruit.y - animats.Food.radius))
-
     for tree in self.env.veggie_trees:
       self.screen.blit(self.veggieTree, \
-              (tree.x - animats.Tree.radius, 
-               tree.y - animats.Tree.radius))
+		       (tree.x - animats.Tree.radius, \
+		        tree.y - animats.Tree.radius))
       for veggie in tree.foods:
-        self.screen.blit(self.veggie, \
-                 (veggie.x - animats.Food.radius, \
-                  veggie.y - animats.Food.radius))
-    # paint foods
+	self.screen.blit(self.veggie, \
+			 (veggie.x - animats.Food.radius, \
+			  veggie.y - animats.Food.radius))
+    # paint environment food
     for food in self.env.foods:
 	self.screen.blit(self.fruit, \
 			 (fruit.x - animats.Food.radius, \
