@@ -78,6 +78,8 @@ A species of animats that live in a world where the sources of two foods essenti
 
 #### How To Run:
 * python simulation.py
+![run](/resources/screenshot1.png)
+
 
 #### Install
 * pybrain:
