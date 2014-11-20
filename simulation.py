@@ -59,13 +59,14 @@ class Simulation:
 		         (fruit.x - animats.Food.radius, \
 			  fruit.y - animats.Food.radius))
 
-    self.screen.blit(self.veggieTree, \
-                    (self.env.veggie_tree.x - animats.Tree.radius, \
-		    self.env.veggie_tree.y - animats.Tree.radius))
-    for veggie in self.env.veggie_tree.foods:
-      self.screen.blit(self.veggie, \
-		       (veggie.x - animats.Food.radius, \
-		        veggie.y - animats.Food.radius))
+    for tree in self.env.veggie_trees:
+      self.screen.blit(self.veggieTree, \
+              (tree.x - animats.Tree.radius, 
+               tree.y - animats.Tree.radius))
+      for veggie in tree.foods:
+        self.screen.blit(self.veggie, \
+                 (veggie.x - animats.Food.radius, \
+                  veggie.y - animats.Food.radius))
     # paint foods
     for food in self.env.foods:
 	self.screen.blit(self.fruit, \

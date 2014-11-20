@@ -17,8 +17,11 @@ class Environment:
 			FruitTree(Tree.radius + Tree.radius, Tree.radius),
 			FruitTree(width - Tree.radius - Tree.radius, \
 				  Tree.radius)]
-    self.veggie_tree = VeggieTree(width/2, height - Tree.radius)
 
+    self.veggie_trees = [VeggieTree(width/2, height - Tree.radius),
+      VeggieTree(Tree.radius + Tree.radius, height - Tree.radius),
+      VeggieTree(width - Tree.radius - Tree.radius, \
+          height - Tree.radius)]
     # ground foods
     self.foods = []
 
@@ -39,7 +42,7 @@ class Environment:
     if thing == Fruit:
       return sum(map(lambda f:f.scent(x,y), self.fruit_trees[0].foods))
     if thing == Veggie:
-      return sum(map(lambda f:f.scent(x,y), self.veggie_tree.foods))
+      return sum(map(lambda f:f.scent(x,y), self.veggie_trees[0].foods))
 
   # TODO - Get this on a thread
   def update(self):
@@ -87,10 +90,10 @@ class Environment:
 	  if pow(new_x - tree.x, 2) + pow(new_y - tree.y, 2) \
 	   <= Tree.radius * Tree.radius:
 	   animat.touching = True
-	if pow(new_x - self.veggie_tree.x, 2) \
-	 + pow(new_y - self.veggie_tree.y, 2) \
-	 <= Tree.radius * Tree.radius:
-	  animat.touching = True
+	for tree in self.veggie_trees:     
+		if pow(new_x - tree.x, 2) + pow(new_y - tree.y, 2) \
+		  <= Tree.radius * Tree.radius:
+			animat.touching = True
 	# check fruit collision
 	for tree in self.fruit_trees:
 	  for fruit in tree.foods:
@@ -101,13 +104,14 @@ class Environment:
 		tree.foods.remove(fruit)
 		animat.food = fruit
 	# check veggie collision
-	for veggie in self.veggie_tree.foods:
-	  if pow(new_x - veggie.x, 2) + pow(new_y - veggie.y, 2) \
-	   <= Food.radius * Food.radius:
-	    animat.touching = True
-	    if animat.wants_to_pickup:
-	      self.veggie_tree.foods.remove(veggie)
-	      animat.food = veggie
+	for tree in self.veggie_trees:
+		for veggie in tree.foods:
+			if pow(new_x - veggie.x, 2) + pow(new_y - veggie.y, 2) \
+  	   <= Food.radius * Food.radius:
+				animat.touching = True
+				if animat.wants_to_pickup:
+					self.veggie_trees.foods.remove(veggie)
+					animat.food = veggie
 	# check food on the ground
 	for food in self.foods:
 	  if pow(new_x - food.x, 2) + pow(new_y - food.y, 2) \
