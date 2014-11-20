@@ -22,7 +22,6 @@ class Environment:
 				    height - Tree.radius), \
 			 VeggieTree(width - Tree.radius - Tree.radius, \
 				    height - Tree.radius)]
-
     # ground foods
     self.foods = []
 

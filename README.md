@@ -32,6 +32,7 @@ A species of animats that live in a world where the sources of two foods essenti
  * This is going to be a tuning parameter, to see how it affects our outcome. 
  * If one animat dies, one random animat of the remaining survivors will asexually reproduce, keeping the population size constant.
 
+![Fruit](/resources/banana.png)  ![tomato](/resources/tomato.png)
 
 #### Animats:
 * Brain:
