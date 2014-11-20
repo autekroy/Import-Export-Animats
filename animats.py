@@ -56,7 +56,6 @@ class Environment:
 	all_fruits.append(food)
       elif isinstance(food, Veggie):
 	all_veggies.append(food)
-    all_foods = all_veggies + all_fruits
     for animat in self.animats:
       # DEATH
       if animat.fruit_hunger + animat.veggie_hunger < 0:
@@ -94,7 +93,7 @@ class Environment:
         or (new_x - animat.radius) < 0 \
         or (new_y - animat.radius) < 0:
           animat.touching = True
-	# check tree collision
+	# check tree and food on tree collision
 	for tree in self.fruit_trees + self.veggie_trees:
 	  if pow(new_x - tree.x, 2) + pow(new_y - tree.y, 2) \
 	   <= Tree.radius * Tree.radius:
@@ -128,12 +127,8 @@ class Environment:
 	  if pow(new_x - food.x, 2) + pow(new_y - food.y, 2) \
 	   <= Food.radius * Food.radius:
 	    if animat.wants_to_pickup:
-	      sources = self.fruit_trees + self.veggie_trees
-	      sources.append(self)
-	      for source in sources:
-		if food in source.foods:
-		  source.foods.remove(food)
-		  animat.food = food
+	      animat.food = food
+	      self.foods.remove(food)
 	# check animat-animat collision	
         others = list(self.animats)
         others.remove(animat)
@@ -197,7 +192,7 @@ class Animat:
     
   def update(self, sensors):
     decision = self.net.activate(sensors)
-    self.ds.addSample(sensors, decision)
+    #self.ds.addSample(sensors, decision)
     # get a little hungry no matter what
     self.get_hungry(.1)
     # move forward
