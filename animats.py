@@ -57,7 +57,6 @@ class Environment:
       elif isinstance(food, Veggie):
 	all_veggies.append(food)
     all_foods = all_veggies + all_fruits
-
     for animat in self.animats:
       # DEATH
       if animat.fruit_hunger + animat.veggie_hunger < 0:
@@ -102,12 +101,14 @@ class Environment:
 	   animat.touching = True
 	# check food collision
 	for food in all_foods:
-	  if pow(new_x - fruit.x, 2) + pow(new_y - fruit.y, 2) \
+	  if pow(new_x - food.x, 2) + pow(new_y - food.y, 2) \
 	   <= Food.radius * Food.radius:
 	    if animat.wants_to_pickup:
-	      for source in self.fruit_trees + self.veggie_trees + self:
+	      sources = self.fruit_trees + self.veggie_trees
+	      sources.append(self)
+	      for source in sources:
 		if food in source.foods:
-		  source.remove(food)
+		  source.foods.remove(food)
 		  animat.food = food
 	# check animat-animat collision	
         others = list(self.animats)
@@ -161,7 +162,7 @@ class Animat:
     self.net.addConnection(FullConnection(self.net['hidden'], self.net['out'], name='c2'))
     self.net.addRecurrentConnection(FullConnection(self.net['hidden'], self.net['hidden'], name='c3'))
     self.net.sortModules()
-    # test training data. Eating food is good? lol
+    # test training data. 
     self.ds = SupervisedDataSet(8, 6)
     self.trainer = BackpropTrainer(self.net, self.ds)
     # thresholds for deciding an action
