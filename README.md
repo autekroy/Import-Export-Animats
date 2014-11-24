@@ -63,6 +63,7 @@ A species of animats that live in a world where the sources of two foods essenti
     * Vegetables
     * Fruits
 
+![network](/resources/neural network.png)
 
 #### Overall System Model:
 * Mostly neural network with adapting weights, supported by evolution to naturally select smarter networks to pass on to next generations.
