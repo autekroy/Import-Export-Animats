@@ -195,7 +195,7 @@ class Animat:
       self.memories.remove(self.memories[0])
     #self.ds.addSample(sensors, decision)
     # get a little hungry no matter what
-    self.get_hungry(.5)
+    self.get_hungry(1)
     # move forward
     self.wants_to_move = (decision[0] > self.move_threshold)
     # rotate left 
@@ -209,7 +209,6 @@ class Animat:
     # putdown
     self.wants_to_putdown = ((decision[4] > self.putdown_threshold)
 			     and self.food)
-    print decision[4]
     # eat
     if (decision[5] > self.eat_threshold) and self.food and ((self.fruit_hunger < 800) or (self.veggie_hunger < 800)):
       if isinstance(self.food, Fruit) and self.fruit_hunger < 800:
