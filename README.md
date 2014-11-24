@@ -24,7 +24,7 @@ A species of animats that live in a world where the sources of two foods essenti
 * 2D Map: Collision among all objects. Nothing can climb over something or go under it
 * Continuous: Movement is entirely free and not grid-like
 * Top and Bottom are walls
-* Left and Right borders wrap around to each other
+* Top, buttom, Left and Right have limited border. 
 
 #### Environment:
 * There are a few trees on the top to spawn unlimited vegetables, and a few trees on the bottom to spawn unlimited fruit
