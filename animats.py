@@ -33,7 +33,7 @@ class Environment:
     for i in range(0, num_animats):
       if spawn_x > self.width:
         spawn_x = 100
-        spawn_y += 100
+        spawn_y += 200
       self.animats.append(Animat(spawn_x, spawn_y, random.random() * 360))
       spawn_x += 100
 
@@ -68,6 +68,9 @@ class Environment:
   def update(self):
     # precompute data
     deaths = []
+    # tree growth
+    for tree in self.fruit_trees + self.veggie_trees:
+      tree.grow()
     # foods
     fruits = self.all_fruits()
     veggies = self.all_veggies()
@@ -103,26 +106,30 @@ class Environment:
 	if isinstance(obstacle, Food):
 	  for source in sources:
 	    if obstacle in source.foods and animat.wants_to_pickup:
-	      source.foods.remove(obstacle)
+	      if isinstance(source, Tree):
+		source.pick(obstacle)
+	      else:
+		source.foods.remove(obstacle)
 	      animat.food = obstacle
-	# check putdown action
-	if animat.wants_to_putdown:
-	  if isinstance(animat.food, Fruit):
-	    self.foods.append(Fruit(animat.x, animat.y))
-	  elif isinstance(animat.food, Veggie):
-	    self.foods.append(Veggie(animat.x, animat.y))
-	  animat.food = None
-	# finally move if possible
+      	# finally move if possible
         if not obstacle:
 	  animat.x = new_x
 	  animat.y = new_y
-	# birth
-	if animat.pregnant:
-	  self.spawn(animat)
-	# DEATH
-	if animat.fruit_hunger + animat.veggie_hunger < 0:
-	  deaths.append(animat)
-	  self.animats.remove(animat)
+
+      # putdown
+      if animat.wants_to_putdown:
+	if isinstance(animat.food, Fruit):
+	  self.foods.append(Fruit(animat.x, animat.y))
+	elif isinstance(animat.food, Veggie):
+	  self.foods.append(Veggie(animat.x, animat.y))
+	animat.food = None
+      # birth
+      if animat.pregnant:
+	self.spawn(animat)
+      # DEATH
+      if animat.fruit_hunger + animat.veggie_hunger < 0:
+	deaths.append(animat)
+	self.animats.remove(animat)
   
   def collision(self, x, y, animats):
     # check wall collision
@@ -184,8 +191,8 @@ class Animat:
     self.trainer = BackpropTrainer(self.net, self.ds)
     # thresholds for deciding an action
     self.move_threshold = 0
-    self.pickup_threshold = -10
-    self.putdown_threshold = 0.5
+    self.pickup_threshold = -1
+    self.putdown_threshold = 0
     self.eat_threshold = -5
     
   def update(self, sensors):
@@ -193,7 +200,7 @@ class Animat:
     self.memories.append((sensors, decision))
     if len(self.memories) > 50:
       self.memories.remove(self.memories[0])
-    #self.ds.addSample(sensors, decision)
+    self.ds.addSample(sensors, decision)
     # get a little hungry no matter what
     self.get_hungry(1)
     # move forward
@@ -210,21 +217,21 @@ class Animat:
     self.wants_to_putdown = ((decision[4] > self.putdown_threshold)
 			     and self.food)
     # eat
-    if (decision[5] > self.eat_threshold) and self.food and ((self.fruit_hunger < 800) or (self.veggie_hunger < 800)):
-      if isinstance(self.food, Fruit) and self.fruit_hunger < 800:
+    if (decision[5] > self.eat_threshold) and self.food:
+      if isinstance(self.food, Fruit):
 	self.fruit_hunger = 1000
-      elif isinstance(self.food, Veggie) and self.veggie_hunger < 800:
+      elif isinstance(self.food, Veggie):
 	self.veggie_hunger = 1000
       self.pregnant = True
       map(lambda x:self.ds.addSample(x[0],x[1]), self.memories)
-      self.trainer.train()
+      #self.trainer.train()
       self.food = None
       
   def get_hungry(self, amount):
     self.fruit_hunger -= amount
     self.veggie_hunger -= amount
 
-  # reincarnate by cloning neural net and dataset
+  # reincarnate by cloning neural net
   def reincarnate(self, other):
     self.fruit_hunger = 1000
     self.veggie_hunger = 1000
@@ -234,23 +241,52 @@ class Animat:
 class Tree(object):
   radius = 45
   def __init__(self, x, y):
+    # flower (position index, age) 
+    self.flowers = {} 
     self.x = x
     self.y = y
     self.foods = []
+
+  def pick(self, food):
+    self.flowers[self.foods.index(food)] = 0
+    self.foods.remove(food)
+
+  def grow(self):
+    for i in self.flowers:
+      # grow
+      self.flowers[i] += 1
+      # new food!
+      if self.flowers[i] == 1000:
+	self.spawn(i)
+	del(self.flowers[i])
+	break
+	
       
 class FruitTree(Tree):
   def __init__(self, x, y):
     super(FruitTree, self).__init__(x,y)
-    self.foods.append(Fruit(self.x - self.radius, self.y - 10))
-    self.foods.append(Fruit(self.x, self.y + self.radius - 10)) 
-    self.foods.append(Fruit(self.x + self.radius, self.y - 10))
+    self.positions = [(self.x - self.radius, self.y - 10),
+		      (self.x, self.y + self.radius - 10),
+		      (self.x + self.radius, self.y - 10)]
+    self.foods.append(Fruit(self.positions[0][0], self.positions[0][1]))
+    self.foods.append(Fruit(self.positions[1][0], self.positions[1][1]))
+    self.foods.append(Fruit(self.positions[2][0], self.positions[2][1]))
+
+  def spawn(self, index):
+    self.foods.append(Fruit(self.positions[index][0], self.positions[index][1]))
 
 class VeggieTree(Tree):
   def __init__(self, x, y):
     super(VeggieTree, self).__init__(x,y)
-    self.foods.append(Veggie(self.x - self.radius, self.y))
-    self.foods.append(Veggie(self.x, self.y - self.radius))
-    self.foods.append(Veggie(self.x + self.radius, self.y))
+    self.positions = [(self.x - self.radius, self.y),
+		      (self.x, self.y - self.radius),
+		      (self.x + self.radius, self.y)]
+    self.foods.append(Veggie(self.positions[0][0], self.positions[0][1]))
+    self.foods.append(Veggie(self.positions[1][0], self.positions[1][1]))
+    self.foods.append(Veggie(self.positions[2][0], self.positions[2][1]))
+
+  def spawn(self, index):
+    self.foods.append(Veggie(self.positions[index][0], self.positions[index][1]))
 
 # Fruits and Veggies
 class Food:
