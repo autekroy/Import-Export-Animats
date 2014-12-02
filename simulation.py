@@ -1,12 +1,13 @@
 #!/usr/bin/python
 import animats
 import sys # sys.exit()
+import pickle
 import pygame
 import math
 
 
 class Simulation:
-  def __init__(self, width, height, num_animats):
+  def __init__(self, width, height, num_animats, nets):
     # initialize pygame
     pygame.init()
 
@@ -88,11 +89,22 @@ class Simulation:
     pygame.display.flip()
 
 if __name__ == "__main__":
-  # (width, height, num_animats),  picture maximum size is 800x600
-  simulation = Simulation(1000, 700, 15)
+  # load save state
+  nets = []
+  if len(sys.argv) > 1:
+    nets = pickle.load('nets.sav')
+  # (width, height, num_animats, nets),  picture maximum size is 800x600
+  simulation = Simulation(1000, 700, 15, nets)
   while 1: # main loop
     for event in pygame.event.get():
       # check for exit
       if event.type == pygame.QUIT: 
-        sys.exit()
+	# Save neural net states
+	nets = []
+	for animat in simulation.env.animats:
+	  nets.append(animat.net)
+	f = open('nets.sav','w')
+	pickle.dump(nets, f)
+        f.close()
+	sys.exit()
     simulation.update()

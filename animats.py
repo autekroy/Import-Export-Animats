@@ -7,7 +7,8 @@ from pybrain.supervised.trainers import BackpropTrainer
 from pybrain.datasets import SupervisedDataSet
 
 class Environment:
-  def __init__(self, num_animats, width, height):
+  # Optionally initialize with a set of neural nets
+  def __init__(self, num_animats, width, height, nets=[]):
     # environment
     self.width = width
     self.height = height
@@ -36,6 +37,10 @@ class Environment:
         spawn_y += 200
       self.animats.append(Animat(spawn_x, spawn_y, random.random() * 360))
       spawn_x += 100
+
+    # saved neural nets
+    for i in range(0, min(len(nets),len(self.animats))):
+      animats[i] = nets[i]
 
   # get the sum of scents for a list of things
   def scent(self, x, y, things):
@@ -130,6 +135,11 @@ class Environment:
       if animat.fruit_hunger + animat.veggie_hunger < 0:
 	deaths.append(animat)
 	self.animats.remove(animat)
+    for animat in deaths:
+      host = random.choice(self.animats)
+      animat.reincarnate(host)
+      self.animats.append(animat)
+
   
   def collision(self, x, y, animats):
     # check wall collision
@@ -222,9 +232,9 @@ class Animat:
 	self.fruit_hunger = 1000
       elif isinstance(self.food, Veggie):
 	self.veggie_hunger = 1000
-      self.pregnant = True
+      #self.pregnant = True
       map(lambda x:self.ds.addSample(x[0],x[1]), self.memories)
-      #self.trainer.train()
+      self.trainer.train()
       self.food = None
       
   def get_hungry(self, amount):
