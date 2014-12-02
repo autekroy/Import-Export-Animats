@@ -3,8 +3,6 @@ import random
 import math
 import numpy
 from pybrain.structure import RecurrentNetwork, FeedForwardNetwork, LinearLayer, SigmoidLayer, FullConnection
-from pybrain.supervised.trainers import BackpropTrainer 
-from pybrain.datasets import SupervisedDataSet
 
 class Environment:
   # Optionally initialize with a set of neural nets
@@ -192,14 +190,7 @@ class Animat:
     self.net.addOutputModule(LinearLayer(6, name='out'))
     self.net.addConnection(FullConnection(self.net['in'], self.net['hidden'], name='c1'))
     self.net.addConnection(FullConnection(self.net['hidden'], self.net['out'], name='c2'))
-    #self.net.addRecurrentConnection(FullConnection(self.net['hidden'], self.net['hidden'], name='c3'))
     self.net.sortModules()
-    # Learn by memory:
-    # - Keep a short-term memory of actions
-    # - When food is found, add those actions to the supervised data set
-    self.memories = []
-    self.ds = SupervisedDataSet(8, 6)
-    self.trainer = BackpropTrainer(self.net, self.ds)
     # thresholds for deciding an action
     self.move_threshold = 0
     self.pickup_threshold = -1
@@ -208,9 +199,6 @@ class Animat:
     
   def update(self, sensors):
     decision = self.net.activate(sensors)
-    self.memories.append((sensors, decision))
-    if len(self.memories) > 50:
-      self.memories.remove(self.memories[0])
     # get a little hungry no matter what
     self.get_hungry(1)
     # move forward
@@ -233,9 +221,6 @@ class Animat:
       elif isinstance(self.food, Veggie):
 	self.veggie_hunger = 1000
       #self.pregnant = True
-      map(lambda x:self.ds.addSample(x[0],x[1]), self.memories)
-      self.trainer.train()
-      self.ds.clear()
       self.food = None
       
   def get_hungry(self, amount):
