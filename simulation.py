@@ -7,7 +7,7 @@ import math
 
 
 class Simulation:
-  def __init__(self, width, height, num_animats, nets):
+  def __init__(self, width, height, num_animats, saved_animats):
     # initialize pygame
     pygame.init()
 
@@ -39,7 +39,7 @@ class Simulation:
     self.veggie        = pygame.transform.scale(self.veggie, (26, 26))
 
     # initialize the model
-    self.env = animats.Environment(num_animats, width, height)
+    self.env = animats.Environment(num_animats, width, height, saved_animats)
 
   def update(self):
     self.env.update()
@@ -90,21 +90,26 @@ class Simulation:
 
 if __name__ == "__main__":
   # load save state
-  nets = []
+  saved_animats = []
   if len(sys.argv) > 1:
-    nets = pickle.load('nets.sav')
-  # (width, height, num_animats, nets),  picture maximum size is 800x600
-  simulation = Simulation(1000, 700, 15, nets)
+    try:
+      print "Loading file..."
+      f = open(sys.argv[1],'r')
+      saved_animats = pickle.load(f)
+      f.close()
+    except:
+      print "File not found."
+  # (width, height, num_animats, saved_animats),  picture maximum size is 800x600
+  simulation = Simulation(1000, 700, 15, saved_animats)
   while 1: # main loop
     for event in pygame.event.get():
       # check for exit
       if event.type == pygame.QUIT: 
-	# Save neural net states
-	nets = []
-	for animat in simulation.env.animats:
-	  nets.append(animat.net)
-	f = open('nets.sav','w')
-	pickle.dump(nets, f)
-        f.close()
+	if len(sys.argv) > 1:
+	  # Save animat states
+	  print "Saving file..."
+	  f = open(sys.argv[1],'w')
+	  pickle.dump(simulation.env.animats, f)
+	  f.close()
 	sys.exit()
     simulation.update()

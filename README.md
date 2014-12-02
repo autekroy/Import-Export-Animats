@@ -79,7 +79,9 @@ A species of animats that live in a world where the sources of two foods essenti
 * pygame for graphics
 
 #### How To Run:
-* python simulation.py
+* Quick Run: 	    python simulation.py
+* With a save file: python simulation.py <filename>.dat
+
 ![run](/resources/screenshot1.png)
 
 

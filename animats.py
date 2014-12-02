@@ -8,7 +8,7 @@ from pybrain.datasets import SupervisedDataSet
 
 class Environment:
   # Optionally initialize with a set of neural nets
-  def __init__(self, num_animats, width, height, nets=[]):
+  def __init__(self, num_animats, width, height, saved_animats=[]):
     # environment
     self.width = width
     self.height = height
@@ -28,19 +28,17 @@ class Environment:
 
     # animats
     self.num_animats = num_animats
-    self.animats = []
-    spawn_x = 100
-    spawn_y = 200
-    for i in range(0, num_animats):
-      if spawn_x > self.width:
-        spawn_x = 100
-        spawn_y += 200
-      self.animats.append(Animat(spawn_x, spawn_y, random.random() * 360))
-      spawn_x += 100
+    self.animats = saved_animats
+    if num_animats > len(saved_animats):
+      spawn_x = 100
+      spawn_y = 200
+      for i in range(0, num_animats - len(saved_animats)):
+	if spawn_x > self.width:
+	  spawn_x = 100
+	  spawn_y += 200
+	self.animats.append(Animat(spawn_x, spawn_y, random.random() * 360))
+	spawn_x += 100
 
-    # saved neural nets
-    for i in range(0, min(len(nets),len(self.animats))):
-      animats[i] = nets[i]
 
   # get the sum of scents for a list of things
   def scent(self, x, y, things):
@@ -210,7 +208,6 @@ class Animat:
     self.memories.append((sensors, decision))
     if len(self.memories) > 50:
       self.memories.remove(self.memories[0])
-    self.ds.addSample(sensors, decision)
     # get a little hungry no matter what
     self.get_hungry(1)
     # move forward
@@ -235,6 +232,7 @@ class Animat:
       #self.pregnant = True
       map(lambda x:self.ds.addSample(x[0],x[1]), self.memories)
       self.trainer.train()
+      self.ds.clear()
       self.food = None
       
   def get_hungry(self, amount):
@@ -266,7 +264,7 @@ class Tree(object):
       # grow
       self.flowers[i] += 1
       # new food!
-      if self.flowers[i] == 1000:
+      if self.flowers[i] == 500:
 	self.spawn(i)
 	del(self.flowers[i])
 	break
