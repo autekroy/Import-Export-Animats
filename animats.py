@@ -8,7 +8,7 @@ from pybrain.datasets import SupervisedDataSet
 
 class Environment:
   # Optionally initialize with a set of neural nets
-  def __init__(self, num_animats, width, height, saved_animats=[]):
+  def __init__(self, num_animats, width, height, saved_nets=[]):
     # environment
     self.width = width
     self.height = height
@@ -28,16 +28,19 @@ class Environment:
 
     # animats
     self.num_animats = num_animats
-    self.animats = saved_animats
-    if num_animats > len(saved_animats):
-      spawn_x = 100
-      spawn_y = 200
-      for i in range(0, num_animats - len(saved_animats)):
-	if spawn_x > self.width:
-	  spawn_x = 100
-	  spawn_y += 200
-	self.animats.append(Animat(spawn_x, spawn_y, random.random() * 360))
-	spawn_x += 100
+    self.animats = []
+    spawn_x = 100
+    spawn_y = 200
+    for i in range(0, num_animats):
+      if spawn_x > self.width:
+        spawn_x = 100
+        spawn_y += 200
+      a = Animat(spawn_x, spawn_y, random.random() * 360)
+      # old neural net
+      if saved_nets:
+        a.net = saved_nets.pop()
+      self.animats.append(a)
+      spawn_x += 100
 
 
   # get the sum of scents for a list of things
@@ -183,13 +186,13 @@ class Animat:
     # 8 sensors: 2 for each smell: fruit, veggie; holding; colliding; 2 hungers
     # 3 hidden layers
     # 6 output nodes: turn left/right, move forward, pickup, putdown, eat
-    self.net = RecurrentNetwork()
+    self.net = FeedForwardNetwork()
     self.net.addInputModule(LinearLayer(8, name='in'))
-    self.net.addModule(SigmoidLayer(3, name='hidden'))
+    self.net.addModule(SigmoidLayer(8, name='hidden'))
     self.net.addOutputModule(LinearLayer(6, name='out'))
     self.net.addConnection(FullConnection(self.net['in'], self.net['hidden'], name='c1'))
     self.net.addConnection(FullConnection(self.net['hidden'], self.net['out'], name='c2'))
-    self.net.addRecurrentConnection(FullConnection(self.net['hidden'], self.net['hidden'], name='c3'))
+    #self.net.addRecurrentConnection(FullConnection(self.net['hidden'], self.net['hidden'], name='c3'))
     self.net.sortModules()
     # Learn by memory:
     # - Keep a short-term memory of actions
@@ -264,7 +267,7 @@ class Tree(object):
       # grow
       self.flowers[i] += 1
       # new food!
-      if self.flowers[i] == 500:
+      if self.flowers[i] == 200:
 	self.spawn(i)
 	del(self.flowers[i])
 	break
