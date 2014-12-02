@@ -80,7 +80,7 @@ A species of animats that live in a world where the sources of two foods essenti
 
 #### How To Run:
 * Quick Run: 	    python simulation.py
-* With a save file: python simulation.py <filename>.dat
+* With a save file: python simulation.py "filename.dat"
 
 ![run](/resources/screenshot1.png)
 
