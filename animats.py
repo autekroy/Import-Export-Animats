@@ -25,6 +25,7 @@ class Environment:
     # animats
     self.num_animats = num_animats
     self.animats = []
+    self.deaths = []
     for i in range(0, num_animats):
       a = Animat(0, 0, random.random() * 360)
       # old neural net
@@ -73,7 +74,6 @@ class Environment:
 
   # TODO - Get this on a thread
   def update(self):
-    deaths = 0
     # tree growth
     for tree in self.fruit_trees + self.veggie_trees:
       tree.grow()
@@ -83,22 +83,39 @@ class Environment:
     # food sources
     sources = self.fruit_trees + self.veggie_trees + [self]
     for animat in self.animats:
-      # reset environment sensors
-      left_sensor_x = int(math.cos((animat.direction-90)*math.pi/180)*animat.radius)+animat.x
-      left_sensor_y = int(math.sin((animat.direction-90)*math.pi/180)*animat.radius)+animat.y
-      right_sensor_x = int(math.cos((animat.direction+90)*math.pi/180)*animat.radius)+animat.x
-      right_sensor_y = int(math.sin((animat.direction+90)*math.pi/180)*animat.radius)+animat.y
+      # Smell
+      #left_sensor_x = int(math.cos((animat.direction-90)*math.pi/180)*animat.radius)+animat.x
+      #left_sensor_y = int(math.sin((animat.direction-90)*math.pi/180)*animat.radius)+animat.y
+      #right_sensor_x = int(math.cos((animat.direction+90)*math.pi/180)*animat.radius)+animat.x
+      #right_sensor_y = int(math.sin((animat.direction+90)*math.pi/180)*animat.radius)+animat.y
+
+      # line of sight
+      step_x = int(math.cos(animat.direction*math.pi / 180) * 10)
+      step_y = int(math.sin(animat.direction*math.pi / 180) * 10)
+      los_x = animat.x
+      los_y = animat.y
+      sees = None
+      while not sees:
+	los_x += step_x
+	los_y += step_y
+	sees = self.collision(los_x, los_y, self.animats)
+
       has_food = False
       if animat.food:
-	has_food = True			    
-      animat.update((self.scent(left_sensor_x, left_sensor_y, fruits),
-		     self.scent(right_sensor_x, right_sensor_y, fruits),
-		     self.scent(left_sensor_x, left_sensor_y, veggies),
-		     self.scent(right_sensor_x, right_sensor_y, veggies),
-		     has_food,
+	has_food = True	
+      # inputs are normalized. Possibly not necessary
+      animat.update((#self.scent(left_sensor_x, left_sensor_y, fruits),
+		     #self.scent(right_sensor_x, right_sensor_y, fruits),
+		     #self.scent(left_sensor_x, left_sensor_y, veggies),
+		     #self.scent(right_sensor_x, right_sensor_y, veggies),
+		     int(isinstance(sees, Fruit))*1000,
+		     int(isinstance(sees, Veggie))*1000,
+		     int(isinstance(sees, Animat))*1000,
+		     int(isinstance(sees, Environment))*1000,
+		     int(has_food)*1000,
 		     animat.fruit_hunger,
 		     animat.veggie_hunger,
-		     animat.touching))
+		     int(animat.touching)*1000))
       if animat.wants_to_move:
 	# Where does it want to move?
         step = 3
@@ -134,15 +151,20 @@ class Environment:
 	elif isinstance(animat.food, Veggie):
 	  self.foods.append(Veggie(animat.x, animat.y))
 	animat.food = None
-      # DEATH (only 1 animat at a time)
-      if animat.fruit_hunger + animat.veggie_hunger < 0:
-	deaths += 1
-	self.animats.remove(animat)
-    # if an animat dies, random remaining animats mate
-    for i in range(0, deaths):
-      parents = random.sample(self.animats, 2)
+      # DEATH 
+      if animat not in self.deaths \
+      and animat.fruit_hunger + animat.veggie_hunger < 0:
+	self.deaths.append(animat)
+
+    # if two animats are pregnant, they mate. Yea it's weird I know
+    parents = filter(lambda a: a.pregnant, self.animats)
+    if len(parents) >= 2:
+      # in case there are more than 2, select 2 random
+      parents = random.sample(parents, 2)
       self.spawn(parents[0].mate(parents[1]))
-    deaths = 0
+    # keep the population size stable
+    while len(self.animats) > self.num_animats and len(self.deaths) > 0:
+      self.animats.remove(self.deaths.pop(0))
   
   def collision(self, x, y, animats):
     # check wall collision
@@ -177,6 +199,8 @@ class Animat:
     self.direction = direction
     # carrying food
     self.food = None
+    # ready to mate
+    self.pregnant = False
     # touching anything
     self.touching = False
     # hunger sensor
@@ -187,11 +211,15 @@ class Animat:
     # 3 hidden layers
     # 6 output nodes: turn left/right, move forward, pickup, putdown, eat
     self.net = FeedForwardNetwork()
-    self.net.addInputModule(LinearLayer(8, name='in'))
-    self.net.addModule(SigmoidLayer(8, name='hidden'))
-    self.net.addOutputModule(LinearLayer(6, name='out'))
-    self.net.addConnection(FullConnection(self.net['in'], self.net['hidden'], name='c1'))
-    self.net.addConnection(FullConnection(self.net['hidden'], self.net['out'], name='c2'))
+    # random layer types
+    inputs = [LinearLayer(8, name='in'), SigmoidLayer(8, name='in')]
+    hiddens = [LinearLayer(8, name='hidden'), SigmoidLayer(8, name='hidden')]
+    outputs = [LinearLayer(6, name='out'), SigmoidLayer(6, name='out')]
+    self.net.addInputModule(random.choice(inputs))
+    self.net.addModule(random.choice(hiddens))
+    self.net.addOutputModule(random.choice(outputs))
+    self.net.addConnection(FullConnection(self.net['in'], self.net['hidden']))
+    self.net.addConnection(FullConnection(self.net['hidden'], self.net['out']))
     self.net.sortModules()
     # thresholds for deciding an action
     self.move_threshold = 0
@@ -223,6 +251,7 @@ class Animat:
       elif isinstance(self.food, Veggie):
 	self.veggie_hunger = 1000
       self.food = None
+      self.pregnant = True
       
   def get_hungry(self, amount):
     self.fruit_hunger -= amount
@@ -230,9 +259,20 @@ class Animat:
 
   # returns a child with a genetic combination of neural net weights of 2 parents
   def mate(self, other):
-    child = Animat(0,0,0)
+    self.pregnant = False
+    other.pregnant = False
+    child = Animat(0,0, random.random() * 360)
+    child.net = FeedForwardNetwork()
+    # inherit parents layer types
+    child.net.addInputModule(random.choice([self.net['in'], other.net['in']]))
+    child.net.addModule(random.choice([self.net['hidden'],other.net['hidden']]))
+    child.net.addOutputModule(random.choice([self.net['out'], other.net['out']]))
+    # finalize the network
+    child.net.addConnection(FullConnection(child.net['in'], child.net['hidden']))
+    child.net.addConnection(FullConnection(child.net['hidden'], child.net['out']))
+    child.net.sortModules()
+    # inherit parents connection weights
     for i in range(0,len(self.net.params)):
-      # genotype selection
       if random.random() > .5:
 	child.net.params[i] = self.net.params[i]
       if random.random() < .4:
