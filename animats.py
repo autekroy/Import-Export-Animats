@@ -10,7 +10,6 @@ class Environment:
     # environment
     self.width = width
     self.height = height
-    
     # trees
     self.fruit_trees = [FruitTree(width/2, Tree.radius), \
 			FruitTree(Tree.radius + Tree.radius, Tree.radius), \
@@ -23,29 +22,24 @@ class Environment:
 				    height - Tree.radius)]
     # ground foods
     self.foods = []
-
     # animats
     self.num_animats = num_animats
     self.animats = []
-    spawn_x = 100
-    spawn_y = 200
     for i in range(0, num_animats):
-      if spawn_x > self.width:
-        spawn_x = 100
-        spawn_y += 200
-      a = Animat(spawn_x, spawn_y, random.random() * 360)
+      a = Animat(0, 0, random.random() * 360)
       # old neural net
       if saved_nets:
         a.net = saved_nets.pop()
-      self.animats.append(a)
-      spawn_x += 100
-
+      self.spawn(a)
+    self.spawn(Fruit(0,0))
+    self.spawn(Veggie(200,200))
 
   # get the sum of scents for a list of things
   def scent(self, x, y, things):
     return sum(map(lambda f:f.scent(x,y), things))
 
-  def spawn(self, animat):
+  # places a new animat in a random location on the map
+  def spawn(self, thing):
     spawns_x = map(lambda f:f*10, range(0, self.width))
     spawns_y = map(lambda f:f*10, range(0, self.height))
     random.shuffle(spawns_x)
@@ -53,10 +47,12 @@ class Environment:
     for i in spawns_x:
       for j in spawns_y:
 	if not self.collision(i,j, self.animats):
-	  new_animat = Animat(i, j, random.random() * 360)
-	  new_animat.net = animat.net
-	  self.animats.append(new_animat)
-	  animat.pregnant = False
+	  thing.x = i
+	  thing.y = j
+	  if isinstance(thing, Animat):
+	    self.animats.append(thing)
+	  else:
+	    self.foods.append(thing)
 	  return
 
   def all_fruits(self):
@@ -70,8 +66,7 @@ class Environment:
 
   # TODO - Get this on a thread
   def update(self):
-    # precompute data
-    deaths = []
+    deaths = 0
     # tree growth
     for tree in self.fruit_trees + self.veggie_trees:
       tree.grow()
@@ -96,8 +91,8 @@ class Environment:
 		     has_food,
 		     animat.fruit_hunger,
 		     animat.veggie_hunger,
-		     animat.touching))
-
+		     animat.touching,
+		     animat.direction))
       if animat.wants_to_move:
 	# Where does it want to move?
         step = 3
@@ -114,12 +109,12 @@ class Environment:
 		source.pick(obstacle)
 	      else:
 		source.foods.remove(obstacle)
+		source.spawn(Fruit(0,0))
 	      animat.food = obstacle
       	# finally move if possible
         if not obstacle:
 	  animat.x = new_x
 	  animat.y = new_y
-
       # putdown
       if animat.wants_to_putdown:
 	if isinstance(animat.food, Fruit):
@@ -127,18 +122,15 @@ class Environment:
 	elif isinstance(animat.food, Veggie):
 	  self.foods.append(Veggie(animat.x, animat.y))
 	animat.food = None
-      # birth
-      if animat.pregnant:
-	self.spawn(animat)
-      # DEATH
+      # DEATH (only 1 animat at a time)
       if animat.fruit_hunger + animat.veggie_hunger < 0:
-	deaths.append(animat)
+	deaths += 1
 	self.animats.remove(animat)
-    for animat in deaths:
-      host = random.choice(self.animats)
-      animat.reincarnate(host)
-      self.animats.append(animat)
-
+    # if an animat dies, random remaining animats mate
+    for i in range(0, deaths):
+      parents = random.sample(self.animats, 2)
+      self.spawn(parents[0].mate(parents[1]))
+    deaths = 0
   
   def collision(self, x, y, animats):
     # check wall collision
@@ -178,14 +170,12 @@ class Animat:
     # hunger sensor
     self.fruit_hunger = 1000
     self.veggie_hunger = 1000
-    # ready to spawn a child
-    self.pregnant = False
     # neural net
     # 8 sensors: 2 for each smell: fruit, veggie; holding; colliding; 2 hungers
     # 3 hidden layers
     # 6 output nodes: turn left/right, move forward, pickup, putdown, eat
     self.net = FeedForwardNetwork()
-    self.net.addInputModule(LinearLayer(8, name='in'))
+    self.net.addInputModule(LinearLayer(9, name='in'))
     self.net.addModule(SigmoidLayer(8, name='hidden'))
     self.net.addOutputModule(LinearLayer(6, name='out'))
     self.net.addConnection(FullConnection(self.net['in'], self.net['hidden'], name='c1'))
@@ -220,19 +210,26 @@ class Animat:
 	self.fruit_hunger = 1000
       elif isinstance(self.food, Veggie):
 	self.veggie_hunger = 1000
-      #self.pregnant = True
       self.food = None
       
   def get_hungry(self, amount):
     self.fruit_hunger -= amount
     self.veggie_hunger -= amount
 
-  # reincarnate by cloning neural net
-  def reincarnate(self, other):
-    self.fruit_hunger = 1000
-    self.veggie_hunger = 1000
-    self.net = other.net
-    
+  # returns a child with a genetic combination of neural net weights of 2 parents
+  def mate(self, other):
+    child = Animat(0,0,0)
+    for i in range(0,len(self.net.params)):
+      # genotype selection
+      if random.random() > .5:
+	child.net.params[i] = self.net.params[i]
+      else:
+	child.net.params[i] = other.net.params[i]
+      # random mutation
+      if random.random() > .7:
+	child.net.params[i] = (random.random() - 1) * 4 # [-2,2]
+    return child
+
 # Trees
 class Tree(object):
   radius = 45

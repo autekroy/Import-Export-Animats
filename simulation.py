@@ -69,9 +69,14 @@ class Simulation:
 			  veggie.y - animats.Food.radius))
     # paint environment food
     for food in self.env.foods:
-	self.screen.blit(self.fruit, \
-			 (fruit.x - animats.Food.radius, \
-			  fruit.y - animats.Food.radius))
+	if isinstance(food, animats.Fruit):
+	  self.screen.blit(self.fruit, \
+			   (food.x - animats.Food.radius, \
+			    food.y - animats.Food.radius))
+	else:
+	  self.screen.blit(self.veggie, \
+			   (food.x - animats.Food.radius, \
+			    food.y - animats.Food.radius))
 
     # paint animats
     for animat in self.env.animats:
