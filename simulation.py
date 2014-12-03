@@ -104,7 +104,7 @@ if __name__ == "__main__":
       f.close()
     except:
       print "File not found."
-  # (width, height, num_animats, saved_animats),  picture maximum size is 800x600
+  # (width, height, num_animats, saved_nets)
   simulation = Simulation(1000, 700, 15, saved_nets)
   while 1: # main loop
     for event in pygame.event.get():

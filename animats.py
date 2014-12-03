@@ -6,7 +6,7 @@ from pybrain.structure import RecurrentNetwork, FeedForwardNetwork, LinearLayer,
 
 class Environment:
   # Optionally initialize with a set of neural nets
-  def __init__(self, num_animats, width, height, saved_nets=[]):
+  def __init__(self, num_animats, width, height, saved_nets=[], train=False):
     # environment
     self.width = width
     self.height = height
@@ -31,8 +31,15 @@ class Environment:
       if saved_nets:
         a.net = saved_nets.pop()
       self.spawn(a)
-    self.spawn(Fruit(0,0))
-    self.spawn(Veggie(200,200))
+    
+    # Optional training mode: no trees, only random food on the ground
+    self.train = train
+    if self.train:
+      self.fruit_trees = []
+      self.veggie_trees = []
+      for i in range(0,num_animats/3):
+	self.spawn(Fruit(0,0))
+	self.spawn(Veggie(0,0))
 
   # get the sum of scents for a list of things
   def scent(self, x, y, things):
@@ -91,8 +98,7 @@ class Environment:
 		     has_food,
 		     animat.fruit_hunger,
 		     animat.veggie_hunger,
-		     animat.touching,
-		     animat.direction))
+		     animat.touching))
       if animat.wants_to_move:
 	# Where does it want to move?
         step = 3
@@ -109,12 +115,18 @@ class Environment:
 		source.pick(obstacle)
 	      else:
 		source.foods.remove(obstacle)
-		source.spawn(Fruit(0,0))
+		if self.train:
+		  if isinstance(obstacle, Fruit):
+		    source.spawn(Fruit(0,0))
+		  else:
+		    source.spawn(Veggie(0,0))
 	      animat.food = obstacle
       	# finally move if possible
         if not obstacle:
 	  animat.x = new_x
 	  animat.y = new_y
+	else:
+	  animat.touching = True
       # putdown
       if animat.wants_to_putdown:
 	if isinstance(animat.food, Fruit):
@@ -175,7 +187,7 @@ class Animat:
     # 3 hidden layers
     # 6 output nodes: turn left/right, move forward, pickup, putdown, eat
     self.net = FeedForwardNetwork()
-    self.net.addInputModule(LinearLayer(9, name='in'))
+    self.net.addInputModule(LinearLayer(8, name='in'))
     self.net.addModule(SigmoidLayer(8, name='hidden'))
     self.net.addOutputModule(LinearLayer(6, name='out'))
     self.net.addConnection(FullConnection(self.net['in'], self.net['hidden'], name='c1'))
@@ -223,11 +235,9 @@ class Animat:
       # genotype selection
       if random.random() > .5:
 	child.net.params[i] = self.net.params[i]
-      else:
+      if random.random() < .4:
 	child.net.params[i] = other.net.params[i]
-      # random mutation
-      if random.random() > .7:
-	child.net.params[i] = (random.random() - 1) * 4 # [-2,2]
+      # else, "mutation" - random initial net param not changed
     return child
 
 # Trees
