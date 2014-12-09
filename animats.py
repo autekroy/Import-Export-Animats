@@ -38,7 +38,7 @@ class Environment:
     if self.train:
       self.fruit_trees = []
       self.veggie_trees = []
-      for i in range(0,num_animats/3):
+      for i in range(0,num_animats/2):
 	self.spawn(Fruit(0,0))
 	self.spawn(Veggie(0,0))
 
@@ -95,10 +95,12 @@ class Environment:
       los_x = animat.x
       los_y = animat.y
       sees = None
+      others = list(self.animats)
+      others.remove(animat)
       while not sees:
 	los_x += step_x
 	los_y += step_y
-	sees = self.collision(los_x, los_y, self.animats)
+	sees = self.collision(los_x, los_y, others)
 
       has_food = False
       if animat.food:
@@ -111,6 +113,8 @@ class Environment:
 		     int(isinstance(sees, Fruit))*1000,
 		     int(isinstance(sees, Veggie))*1000,
 		     int(isinstance(sees, Animat))*1000,
+		     int(isinstance(sees, FruitTree))*1000,
+		     int(isinstance(sees, VeggieTree))*1000,
 		     int(isinstance(sees, Environment))*1000,
 		     int(has_food)*1000,
 		     animat.fruit_hunger,
@@ -121,8 +125,6 @@ class Environment:
         step = 3
 	new_x = animat.x + int(math.cos(animat.direction*math.pi / 180) * step)
         new_y = animat.y + int(math.sin(animat.direction*math.pi / 180) * step)
-	others = list(self.animats)
-	others.remove(animat)
 	obstacle = self.collision(new_x, new_y, others)
 	# check pickup
 	if isinstance(obstacle, Food):
@@ -146,24 +148,20 @@ class Environment:
 	  animat.touching = True
       # putdown
       if animat.wants_to_putdown:
-	if isinstance(animat.food, Fruit):
-	  self.foods.append(Fruit(animat.x, animat.y))
-	elif isinstance(animat.food, Veggie):
-	  self.foods.append(Veggie(animat.x, animat.y))
+	#if isinstance(animat.food, Fruit):
+	  #self.foods.append(Fruit(animat.x, animat.y))
+	#elif isinstance(animat.food, Veggie):
+	  #self.foods.append(Veggie(animat.x, animat.y))
 	animat.food = None
       # DEATH 
       if animat not in self.deaths \
       and animat.fruit_hunger + animat.veggie_hunger < 0:
 	self.deaths.append(animat)
 
-    # if two animats are pregnant, they mate. Yea it's weird I know
-    parents = filter(lambda a: a.pregnant, self.animats)
-    if len(parents) >= 2:
-      # in case there are more than 2, select 2 random
-      parents = random.sample(parents, 2)
-      self.spawn(parents[0].mate(parents[1]))
-    # keep the population size stable
-    while len(self.animats) > self.num_animats and len(self.deaths) > 0:
+    # if an animat dies, the two fittest animats mate
+    while len(self.deaths) > 0:
+      fittest = sorted(self.animats, key=lambda a: -a.fruit_hunger - a.veggie_hunger - a.age)
+      self.spawn(fittest[0].mate(fittest[1]))
       self.animats.remove(self.deaths.pop(0))
   
   def collision(self, x, y, animats):
@@ -193,6 +191,7 @@ class Animat:
 
   def __init__(self, x, y, direction):
     # position
+    self.age = 0
     self.x = x
     self.y = y
     # orientation (0 - 359 degrees)
@@ -212,12 +211,15 @@ class Animat:
     # 6 output nodes: turn left/right, move forward, pickup, putdown, eat
     self.net = FeedForwardNetwork()
     # random layer types
-    inputs = [LinearLayer(8, name='in'), SigmoidLayer(8, name='in')]
-    hiddens = [LinearLayer(8, name='hidden'), SigmoidLayer(8, name='hidden')]
+    inputs = [LinearLayer(10, name='in'), SigmoidLayer(10, name='in')]
+    hiddens = [LinearLayer(11, name='hidden'), SigmoidLayer(11, name='hidden')]
     outputs = [LinearLayer(6, name='out'), SigmoidLayer(6, name='out')]
-    self.net.addInputModule(random.choice(inputs))
-    self.net.addModule(random.choice(hiddens))
-    self.net.addOutputModule(random.choice(outputs))
+    #self.net.addInputModule(random.choice(inputs))
+    #self.net.addModule(random.choice(hiddens))
+    #self.net.addOutputModule(random.choice(outputs))
+    self.net.addInputModule(inputs[0])
+    self.net.addModule(hiddens[1])
+    self.net.addOutputModule(outputs[0])
     self.net.addConnection(FullConnection(self.net['in'], self.net['hidden']))
     self.net.addConnection(FullConnection(self.net['hidden'], self.net['out']))
     self.net.sortModules()
@@ -230,7 +232,8 @@ class Animat:
   def update(self, sensors):
     decision = self.net.activate(sensors)
     # get a little hungry no matter what
-    self.get_hungry(1)
+    self.age += .5
+    self.get_hungry(.5)
     # move forward
     self.wants_to_move = (decision[0] > self.move_threshold)
     # rotate left 
@@ -247,9 +250,9 @@ class Animat:
     # eat
     if (decision[5] > self.eat_threshold) and self.food:
       if isinstance(self.food, Fruit):
-	self.fruit_hunger = 1000
+	self.fruit_hunger += 200
       elif isinstance(self.food, Veggie):
-	self.veggie_hunger = 1000
+	self.veggie_hunger += 200
       self.food = None
       self.pregnant = True
       
@@ -273,11 +276,8 @@ class Animat:
     child.net.sortModules()
     # inherit parents connection weights
     for i in range(0,len(self.net.params)):
-      if random.random() > .5:
-	child.net.params[i] = self.net.params[i]
-      if random.random() < .4:
-	child.net.params[i] = other.net.params[i]
-      # else, "mutation" - random initial net param not changed
+      if random.random() > .05:
+	child.net.params[i] = random.choice([self.net.params[i], other.net.params[i]])
     return child
 
 # Trees
