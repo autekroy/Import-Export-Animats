@@ -1,12 +1,14 @@
 Import-Export-Animats
-=====================
-
+============================================================
 ### Course Project for UCLA CS 263C Animats-Based Modeling
 
-### [Google Docs Project Presentation] (https://docs.google.com/presentation/d/1nOzJIDy3O5cS1DvDtgHL4e2LRKycsBFy2hNM26x0vPE/edit?usp=sharing)
-### [Google Docs Project Proposal] (https://docs.google.com/document/d/1-vtd3lldCF_84RwrdrOmYrAuGJszBgf5PuqX0CxL8qE)
+### [Google Docs Project Report](https://docs.google.com/document/d/1Xxe5j6ea0gBwbp8WcYVyXQ59dWXuPNT9ltiuf0Fl0E8/edit?usp=sharing)
 
+### [Google Docs Project Presentation](https://docs.google.com/presentation/d/1nOzJIDy3O5cS1DvDtgHL4e2LRKycsBFy2hNM26x0vPE/edit?usp=sharing)
 
+### [Google Docs Project Proposal](https://docs.google.com/document/d/1-vtd3lldCF_84RwrdrOmYrAuGJszBgf5PuqX0CxL8qE)
+
+------------------------------------------------------------
 #### Hypothesis:
 A species of animats that live in a world where the sources of two foods essential to their survival exist entirely in two distant locations will evolve and learn to transport and exchange those foods at the midpoint between those locations.
 
@@ -21,6 +23,7 @@ A species of animats that live in a world where the sources of two foods essenti
 * Eliminates certain details at the individual level, such as foraging techniques, motor control and reproduction. 
 * The goal is to challenge the costly lifestyle of inefficient traveling to hunt for food.
 
+------------------------------------------------------------
 #### Physics:
 * 2D Map: Collision among all objects. Nothing can climb over something or go under it
 * Continuous: Movement is entirely free and not grid-like
@@ -35,6 +38,7 @@ A species of animats that live in a world where the sources of two foods essenti
 
 ![Fruit](/resources/banana.png)  ![tomato](/resources/tomato.png)
 
+------------------------------------------------------------
 #### Animats:
 * Brain:
  * Adaptive neural network connecting sensors and motors
@@ -64,8 +68,7 @@ A species of animats that live in a world where the sources of two foods essenti
     * Vegetables
     * Fruits
 
-![network](/resources/neural network.png)
-
+------------------------------------------------------------
 #### Overall System Model:
 * Mostly neural network with adapting weights, supported by evolution to naturally select smarter networks to pass on to next generations.
 
@@ -78,12 +81,12 @@ A species of animats that live in a world where the sources of two foods essenti
 * pyBrain or neurolab for neural network
 * pygame for graphics
 
+------------------------------------------------------------
 #### How To Run:
 * Quick Run: 	    python simulation.py
 * With a save file: python simulation.py "filename.dat"
 
 ![run](/resources/screenshot1.png)
-
 
 #### Install
 * pybrain:

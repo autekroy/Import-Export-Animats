@@ -1,6 +1,6 @@
 #!/usr/bin/python
 import animats
-import sys # sys.exit()
+import sys  # sys.exit()
 import pickle
 import pygame
 import math

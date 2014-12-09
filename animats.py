@@ -299,12 +299,12 @@ class Tree(object):
       # grow
       self.flowers[i] += 1
       # new food!
-      if self.flowers[i] == 200:
+      if self.flowers[i] == 50:
 	self.spawn(i)
 	del(self.flowers[i])
 	break
 	
-      
+# Fruit tree based on Tree class
 class FruitTree(Tree):
   def __init__(self, x, y):
     super(FruitTree, self).__init__(x,y)
@@ -318,6 +318,7 @@ class FruitTree(Tree):
   def spawn(self, index):
     self.foods.append(Fruit(self.positions[index][0], self.positions[index][1]))
 
+# Veggie tree based on Tree class
 class VeggieTree(Tree):
   def __init__(self, x, y):
     super(VeggieTree, self).__init__(x,y)
