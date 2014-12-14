@@ -119,5 +119,12 @@ if __name__ == "__main__":
 	    nets.append(animat.net)
 	  pickle.dump(nets, f)
 	  f.close()
-	sys.exit()
+
+          # save record log
+          fLog = open("generationLog2.txt",'w')
+          for record in simulation.env.log:
+            fLog.write( str(record) + '\n' )
+          fLog.close()
+
+        sys.exit()
     simulation.update()

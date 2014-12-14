@@ -10,6 +10,8 @@ class Environment:
     # environment
     self.width = width
     self.height = height
+    # record log
+    self.log = []
     # trees
     self.fruit_trees = []
     self.veggie_trees = []
@@ -27,6 +29,7 @@ class Environment:
 
     for i in range(0, num_animats):
       a = Animat(0, 0, random.random() * 360)
+      a.generation = 1
       # old neural net
       if saved_nets:
         a.net = saved_nets.pop()
@@ -178,13 +181,18 @@ class Environment:
 	animat.food = None
       # DEATH 
       if animat not in self.deaths \
-      and (animat.fruit_hunger < 0 or animat.veggie_hunger < 0):
+      and (animat.fruit_hunger <= 0 or animat.veggie_hunger <= 0):
 	self.deaths.append(animat)
 
     # if an animat dies, the two fittest animats mate
-    while len(self.deaths) > 0:
-      fittest = sorted(self.animats, key=lambda a: -a.fruit_hunger - a.veggie_hunger - a.age)
+    while len(self.deaths) > 0: 
+      fittest = sorted(self.animats, key=lambda a: -a.fruit_hunger - a.veggie_hunger - a.age) #sorted is from small to large
       self.spawn(fittest[0].mate(fittest[1]))
+      for a in fittest:
+        if a.generation == fittest[0].generation:
+          tmp = (fittest[0].generation, a.fruit_hunger + a.veggie_hunger ) 
+          # print tmp
+          self.log.append( tmp )
       self.animats.remove(self.deaths.pop(0))
   
   def collision(self, x, y, animats):
@@ -201,10 +209,10 @@ class Environment:
       if pow(x - food.x, 2) + pow(y - food.y, 2) <= Food.radius * Food.radius:
 	return food
     # check animat-animat collision	
-    for animat in animats:
-      if pow(x - animat.x, 2) + pow(y - animat.y, 2) \
-       <= Animat.radius * Animat.radius:
-	return animat
+ #    for animat in animats:
+ #      if pow(x - animat.x, 2) + pow(y - animat.y, 2) \
+ #       <= Animat.radius * Animat.radius:
+	# return animat
     # no collision
     return None
 
@@ -215,6 +223,7 @@ class Animat:
   def __init__(self, x, y, direction):
     # position
     self.age = 0
+    self.generation = 0
     self.x = x
     self.y = y
     # orientation (0 - 359 degrees)
@@ -250,13 +259,13 @@ class Animat:
     self.move_threshold = 0
     self.pickup_threshold = -1
     self.putdown_threshold = 0
-    self.eat_threshold = -5
+    self.eat_threshold = -4
     
   def update(self, sensors):
     decision = self.net.activate(sensors)
     # get a little hungry no matter what
     self.age += .5
-    self.get_hungry(.5)
+    self.get_hungry(1)
     # move forward
     self.wants_to_move = (decision[0] > self.move_threshold)
     # rotate left 
@@ -273,9 +282,9 @@ class Animat:
     # eat
     if (decision[5] > self.eat_threshold) and self.food:
       if isinstance(self.food, Fruit):
-        self.fruit_hunger = 1000 if (self.fruit_hunger > 800) else (self.fruit_hunger + 200)
+        self.fruit_hunger = 1000 if (self.fruit_hunger > 900) else (self.fruit_hunger + 100)
       elif isinstance(self.food, Veggie):
-        self.veggie_hunger = 1000 if (self.veggie_hunger > 800) else (self.veggie_hunger + 200)
+        self.veggie_hunger = 1000 if (self.veggie_hunger > 900) else (self.veggie_hunger + 100)
       self.food = None
       self.pregnant = True
       
@@ -289,6 +298,8 @@ class Animat:
     other.pregnant = False
     child = Animat(0,0, random.random() * 360)
     child.net = FeedForwardNetwork()
+    child.generation = self.generation + 1
+    print child.generation
     # inherit parents layer types
     child.net.addInputModule(random.choice([self.net['in'], other.net['in']]))
     child.net.addModule(random.choice([self.net['hidden'],other.net['hidden']]))

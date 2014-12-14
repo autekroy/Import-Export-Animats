@@ -1,0 +1,28 @@
+import animats
+import pickle
+
+f = open('sampleNet3.dat','r')
+saved_nets = pickle.load(f)
+f.close()
+
+e = animats.Environment(15,1000,700,saved_nets)
+
+e = animats.Environment(15,1000,700, [])
+while 1:
+	e.update()
+
+nets = map(lambda a:a.net, e.animats)
+f = open('sampleNet6.dat','w')
+pickle.dump(nets, f)
+f.close()
+
+
+# save logs
+fLog = open("generationLog2.txt",'w')
+for record in e.log:
+	fLog.write( str(record) + '\n' )
+
+
+fLog.close()
+
+exit()

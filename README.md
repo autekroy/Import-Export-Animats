@@ -86,6 +86,23 @@ A species of animats that live in a world where the sources of two foods essenti
 * Quick Run: 	    python simulation.py
 * With a save file(neural networks): python simulation.py "filename.dat"
 
+#### Trained networks steps
+* import animats
+* import pickle
+* f = open('sampleNet2.dat','r')
+* saved_nets = pickle.load(f)
+* f.close()
+
+* e = animats.Environment(15,1000,700,saved_nets)
+* while 1:
+*     e.update()
+
+* nets = map(lambda a:a.net, e.animats)
+* f = open('sampleNet2.dat','w')
+* pickle.dump(nets, f)
+* f.close()
+* exit()
+
 ![run](/resources/screenshot1.png)
 
 #### Install
