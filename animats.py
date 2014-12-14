@@ -68,9 +68,9 @@ class Environment:
     spawns_y = map(lambda f:f*10, range(0, self.height/10))
     # limit the Fruit on the buttom and Veggie on the top
     if isinstance(thing, Fruit):
-      spawns_y = spawns_y[-5:]
+      spawns_y = spawns_y[-10:]
     else: # food is Veggie
-      spawns_y = spawns_y[1:5]
+      spawns_y = spawns_y[1:10]
     # print spawns_y
 
     random.shuffle(spawns_x)
@@ -150,9 +150,6 @@ class Environment:
 	if isinstance(obstacle, Food):
 	  for source in sources:
 	    if obstacle in source.foods and animat.wants_to_pickup:
-	 #      if isinstance(source, Tree):
-		# source.pick(obstacle)
-	 #      else:
                 source.foods.remove(obstacle)
 		if self.train == True:
 		  if isinstance(obstacle, Fruit):
@@ -204,10 +201,10 @@ class Environment:
       if pow(x - food.x, 2) + pow(y - food.y, 2) <= Food.radius * Food.radius:
 	return food
     # check animat-animat collision	
- #    for animat in animats:
- #      if pow(x - animat.x, 2) + pow(y - animat.y, 2) \
- #       <= Animat.radius * Animat.radius:
-	# return animat
+    for animat in animats:
+      if pow(x - animat.x, 2) + pow(y - animat.y, 2) \
+       <= Animat.radius * Animat.radius:
+	return animat
     # no collision
     return None
 
@@ -259,7 +256,7 @@ class Animat:
     decision = self.net.activate(sensors)
     # get a little hungry no matter what
     self.age += .5
-    self.get_hungry(1)
+    self.get_hungry(.5)
     # move forward
     self.wants_to_move = (decision[0] > self.move_threshold)
     # rotate left 
@@ -276,9 +273,9 @@ class Animat:
     # eat
     if (decision[5] > self.eat_threshold) and self.food:
       if isinstance(self.food, Fruit):
-	self.fruit_hunger += 200
+        self.fruit_hunger = 1000 if (self.fruit_hunger > 800) else (self.fruit_hunger + 200)
       elif isinstance(self.food, Veggie):
-	self.veggie_hunger += 200
+        self.veggie_hunger = 1000 if (self.veggie_hunger > 800) else (self.veggie_hunger + 200)
       self.food = None
       self.pregnant = True
       
