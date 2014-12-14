@@ -11,21 +11,20 @@ class Environment:
     self.width = width
     self.height = height
     # trees
-    self.fruit_trees = [FruitTree(width/2, Tree.radius), \
-			FruitTree(Tree.radius + Tree.radius, Tree.radius), \
-			FruitTree(width - Tree.radius - Tree.radius, \
-				  Tree.radius)]
-    self.veggie_trees = [VeggieTree(width/2, height - Tree.radius), \
-			 VeggieTree(Tree.radius + Tree.radius, 
-				    height - Tree.radius), \
-			 VeggieTree(width - Tree.radius - Tree.radius, \
-				    height - Tree.radius)]
+    self.fruit_trees = []
+    self.veggie_trees = []
     # ground foods
     self.foods = []
     # animats
     self.num_animats = num_animats
     self.animats = []
     self.deaths = []
+    
+    # produce foods
+    for i in range(0,15):
+      self.produceFood(Fruit(0,0))
+      self.produceFood(Veggie(0,0))
+
     for i in range(0, num_animats):
       a = Animat(0, 0, random.random() * 360)
       # old neural net
@@ -48,8 +47,8 @@ class Environment:
 
   # places a new animat in a random location on the map
   def spawn(self, thing):
-    spawns_x = map(lambda f:f*10, range(0, self.width))
-    spawns_y = map(lambda f:f*10, range(0, self.height))
+    spawns_x = map(lambda f:f*10, range(0, self.width/10))  # for 1 - 990
+    spawns_y = map(lambda f:f*10, range(0, self.height/10)) # 1 - 690
     random.shuffle(spawns_x)
     random.shuffle(spawns_y)
     for i in spawns_x:
@@ -62,6 +61,27 @@ class Environment:
 	  else:
 	    self.foods.append(thing)
 	  return
+
+  # for randomly produce Food
+  def produceFood(self, thing):
+    spawns_x = map(lambda f:f*10, range(0, self.width))#[20:80]
+    spawns_y = map(lambda f:f*10, range(0, self.height/10))
+    # limit the Fruit on the buttom and Veggie on the top
+    if isinstance(thing, Fruit):
+      spawns_y = spawns_y[-5:]
+    else: # food is Veggie
+      spawns_y = spawns_y[1:5]
+    # print spawns_y
+
+    random.shuffle(spawns_x)
+    random.shuffle(spawns_y)
+    for i in spawns_x:
+      for j in spawns_y:
+        if not self.collision(i,j, self.animats):
+          thing.x = i
+          thing.y = j
+          self.foods.append(thing)
+          return
 
   def all_fruits(self):
     return [fruit \
@@ -113,8 +133,8 @@ class Environment:
 		     int(isinstance(sees, Fruit))*1000,
 		     int(isinstance(sees, Veggie))*1000,
 		     int(isinstance(sees, Animat))*1000,
-		     int(isinstance(sees, FruitTree))*1000,
-		     int(isinstance(sees, VeggieTree))*1000,
+		     # int(isinstance(sees, FruitTree))*1000,
+		     # int(isinstance(sees, VeggieTree))*1000,
 		     int(isinstance(sees, Environment))*1000,
 		     int(has_food)*1000,
 		     animat.fruit_hunger,
@@ -130,16 +150,22 @@ class Environment:
 	if isinstance(obstacle, Food):
 	  for source in sources:
 	    if obstacle in source.foods and animat.wants_to_pickup:
-	      if isinstance(source, Tree):
-		source.pick(obstacle)
-	      else:
-		source.foods.remove(obstacle)
-		if self.train:
+	 #      if isinstance(source, Tree):
+		# source.pick(obstacle)
+	 #      else:
+                source.foods.remove(obstacle)
+		if self.train == True:
 		  if isinstance(obstacle, Fruit):
 		    source.spawn(Fruit(0,0))
 		  else:
 		    source.spawn(Veggie(0,0))
-	      animat.food = obstacle
+                elif self.train != True:
+                  if isinstance(obstacle, Fruit):
+                    source.produceFood(Fruit(0,0))
+                  else:
+                    source.produceFood(Veggie(0,0))
+                animat.food = obstacle 
+       
       	# finally move if possible
         if not obstacle:
 	  animat.x = new_x
@@ -155,7 +181,7 @@ class Environment:
 	animat.food = None
       # DEATH 
       if animat not in self.deaths \
-      and animat.fruit_hunger + animat.veggie_hunger < 0:
+      and (animat.fruit_hunger < 0 or animat.veggie_hunger < 0):
 	self.deaths.append(animat)
 
     # if an animat dies, the two fittest animats mate
@@ -170,18 +196,18 @@ class Environment:
     or (x - Animat.radius) < 0 or (y - Animat.radius) < 0:
       return self
     # check tree collision
-    for tree in self.fruit_trees + self.veggie_trees:
-      if pow(x - tree.x, 2) + pow(y - tree.y, 2) <= Tree.radius * Tree.radius:
-	return tree
+ #    for tree in self.fruit_trees + self.veggie_trees:
+ #      if pow(x - tree.x, 2) + pow(y - tree.y, 2) <= Tree.radius * Tree.radius:
+	# return tree
     # check food collision
     for food in self.all_fruits() + self.all_veggies():
       if pow(x - food.x, 2) + pow(y - food.y, 2) <= Food.radius * Food.radius:
 	return food
     # check animat-animat collision	
-    for animat in animats:
-      if pow(x - animat.x, 2) + pow(y - animat.y, 2) \
-       <= Animat.radius * Animat.radius:
-	return animat
+ #    for animat in animats:
+ #      if pow(x - animat.x, 2) + pow(y - animat.y, 2) \
+ #       <= Animat.radius * Animat.radius:
+	# return animat
     # no collision
     return None
 
@@ -211,7 +237,7 @@ class Animat:
     # 6 output nodes: turn left/right, move forward, pickup, putdown, eat
     self.net = FeedForwardNetwork()
     # random layer types
-    inputs = [LinearLayer(10, name='in'), SigmoidLayer(10, name='in')]
+    inputs = [LinearLayer(8, name='in'), SigmoidLayer(8, name='in')]
     hiddens = [LinearLayer(11, name='hidden'), SigmoidLayer(11, name='hidden')]
     outputs = [LinearLayer(6, name='out'), SigmoidLayer(6, name='out')]
     #self.net.addInputModule(random.choice(inputs))
@@ -233,7 +259,7 @@ class Animat:
     decision = self.net.activate(sensors)
     # get a little hungry no matter what
     self.age += .5
-    self.get_hungry(.5)
+    self.get_hungry(1)
     # move forward
     self.wants_to_move = (decision[0] > self.move_threshold)
     # rotate left 
@@ -279,58 +305,6 @@ class Animat:
       if random.random() > .05:
 	child.net.params[i] = random.choice([self.net.params[i], other.net.params[i]])
     return child
-
-# Trees
-class Tree(object):
-  radius = 45
-  def __init__(self, x, y):
-    # flower (position index, age) 
-    self.flowers = {} 
-    self.x = x
-    self.y = y
-    self.foods = []
-
-  def pick(self, food):
-    self.flowers[self.foods.index(food)] = 0
-    self.foods.remove(food)
-
-  def grow(self):
-    for i in self.flowers:
-      # grow
-      self.flowers[i] += 1
-      # new food!
-      if self.flowers[i] == 50:
-	self.spawn(i)
-	del(self.flowers[i])
-	break
-	
-# Fruit tree based on Tree class
-class FruitTree(Tree):
-  def __init__(self, x, y):
-    super(FruitTree, self).__init__(x,y)
-    self.positions = [(self.x - self.radius, self.y - 10),
-		      (self.x, self.y + self.radius - 10),
-		      (self.x + self.radius, self.y - 10)]
-    self.foods.append(Fruit(self.positions[0][0], self.positions[0][1]))
-    self.foods.append(Fruit(self.positions[1][0], self.positions[1][1]))
-    self.foods.append(Fruit(self.positions[2][0], self.positions[2][1]))
-
-  def spawn(self, index):
-    self.foods.append(Fruit(self.positions[index][0], self.positions[index][1]))
-
-# Veggie tree based on Tree class
-class VeggieTree(Tree):
-  def __init__(self, x, y):
-    super(VeggieTree, self).__init__(x,y)
-    self.positions = [(self.x - self.radius, self.y),
-		      (self.x, self.y - self.radius),
-		      (self.x + self.radius, self.y)]
-    self.foods.append(Veggie(self.positions[0][0], self.positions[0][1]))
-    self.foods.append(Veggie(self.positions[1][0], self.positions[1][1]))
-    self.foods.append(Veggie(self.positions[2][0], self.positions[2][1]))
-
-  def spawn(self, index):
-    self.foods.append(Veggie(self.positions[index][0], self.positions[index][1]))
 
 # Fruits and Veggies
 class Food:
