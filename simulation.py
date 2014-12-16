@@ -1,13 +1,11 @@
 #!/usr/bin/python
 import animats
 import sys  # sys.exit()
-import pickle
 import pygame
 import math
 
-
 class Simulation:
-  def __init__(self, width, height, num_animats, saved_nets):
+  def __init__(self, num_animats, width, height, saved_nets):
     # initialize pygame
     pygame.init()
 
@@ -38,7 +36,6 @@ class Simulation:
     self.fruit         = pygame.transform.scale(self.fruit, (26, 26))
     self.veggie        = pygame.transform.scale(self.veggie, (26, 26))
 
-    # initialize the model
     self.env = animats.Environment(num_animats, width, height, saved_nets)
 
   def update(self):
@@ -50,24 +47,7 @@ class Simulation:
     # repaint
     self.screen.blit(self.bg, (0,0))
 
-    # paint trees
-    for tree in self.env.fruit_trees:
-      self.screen.blit(self.fruitTree, \
-		       (tree.x - animats.Tree.radius, 
-		        tree.y - animats.Tree.radius))
-      for fruit in tree.foods:
-	self.screen.blit(self.fruit, \
-		         (fruit.x - animats.Food.radius, \
-			  fruit.y - animats.Food.radius))
-    for tree in self.env.veggie_trees:
-      self.screen.blit(self.veggieTree, \
-		       (tree.x - animats.Tree.radius, \
-		        tree.y - animats.Tree.radius))
-      for veggie in tree.foods:
-	self.screen.blit(self.veggie, \
-			 (veggie.x - animats.Food.radius, \
-			  veggie.y - animats.Food.radius))
-    # paint environment food
+    # paint food
     for food in self.env.foods:
 	if isinstance(food, animats.Fruit):
 	  self.screen.blit(self.fruit, \
@@ -94,37 +74,21 @@ class Simulation:
     pygame.display.flip()
 
 if __name__ == "__main__":
-  # load save state
-  saved_nets = []
+  # load save state from file
+  filename = ""
   if len(sys.argv) > 1:
-    try:
-      print "Loading file..."
-      f = open(sys.argv[1],'r')
-      saved_nets = pickle.load(f)
-      f.close()
-    except:
-      print "File not found."
-  # (width, height, num_animats, saved_nets)
-  simulation = Simulation(1000, 700, 15, saved_nets)
-  while 1: # main loop
+    filename = sys.argv[1]
+  simulation = Simulation(15, 1000, 700, filename)
+  
+  # main loop
+  while 1: 
     for event in pygame.event.get():
       # check for exit
       if event.type == pygame.QUIT: 
-	if len(sys.argv) > 1:
-	  # Save animat states
-	  print "Saving file..."
-	  f = open(sys.argv[1],'w')
-	  nets = []
-	  for animat in simulation.env.animats:
-	    nets.append(animat.net)
-	  pickle.dump(nets, f)
-	  f.close()
-
-          # save record log
-          fLog = open("generationLog2.txt",'w')
-          for record in simulation.env.log:
-            fLog.write( str(record) + '\n' )
-          fLog.close()
-
+	simulation.env.save()
+	# save record log
+	fLog = open("log.txt",'w')
+	map(lambda r: fLog.write( str(r) + '\n'), simulation.env.log)
+	fLog.close()
         sys.exit()
     simulation.update()

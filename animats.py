@@ -1,21 +1,20 @@
 #!/usr/bin/python
+import pickle
 import random
 import math
 import numpy
 from pybrain.structure import RecurrentNetwork, FeedForwardNetwork, LinearLayer, SigmoidLayer, FullConnection
 
 class Environment:
-  # Optionally initialize with a set of neural nets
-  def __init__(self, num_animats, width, height, saved_nets=[], train=False):
+  def __init__(self, num_animats, width, height, filename):
     # environment
     self.width = width
     self.height = height
     # record log
     self.log = []
-    # trees
-    self.fruit_trees = []
-    self.veggie_trees = []
-    # ground foods
+    # save state
+    self.filename = filename
+    # foods
     self.foods = []
     # animats
     self.num_animats = num_animats
@@ -27,6 +26,8 @@ class Environment:
       self.produceFood(Fruit(0,0))
       self.produceFood(Veggie(0,0))
 
+    # spawn animats
+    saved_nets = self.load()
     for i in range(0, num_animats):
       a = Animat(0, 0, random.random() * 360)
       a.generation = 1
@@ -35,15 +36,6 @@ class Environment:
         a.net = saved_nets.pop()
       self.spawn(a)
     
-    # Optional training mode: no trees, only random food on the ground
-    self.train = train
-    if self.train:
-      self.fruit_trees = []
-      self.veggie_trees = []
-      for i in range(0,num_animats/2):
-	self.spawn(Fruit(0,0))
-	self.spawn(Veggie(0,0))
-
   # get the sum of scents for a list of things
   def scent(self, x, y, things):
     return sum(map(lambda f:f.scent(x,y), things))
@@ -74,7 +66,6 @@ class Environment:
       spawns_y = spawns_y[-10:]
     else: # food is Veggie
       spawns_y = spawns_y[1:10]
-    # print spawns_y
 
     random.shuffle(spawns_x)
     random.shuffle(spawns_y)
@@ -86,32 +77,13 @@ class Environment:
           self.foods.append(thing)
           return
 
-  def all_fruits(self):
-    return [fruit \
-	    for fruits in map(lambda f:f.foods, self.fruit_trees + [self]) \
-	    for fruit in fruits] 
-  def all_veggies(self):
-    return [veggie \
-	    for veggies in map(lambda f:f.foods, self.veggie_trees + [self]) \
-	    for veggie in veggies]
-
-  # TODO - Get this on a thread
   def update(self):
-    # tree growth
-    for tree in self.fruit_trees + self.veggie_trees:
-      tree.grow()
-    # foods
-    fruits = self.all_fruits()
-    veggies = self.all_veggies()
-    # food sources
-    sources = self.fruit_trees + self.veggie_trees + [self]
     for animat in self.animats:
       # Smell
       #left_sensor_x = int(math.cos((animat.direction-90)*math.pi/180)*animat.radius)+animat.x
       #left_sensor_y = int(math.sin((animat.direction-90)*math.pi/180)*animat.radius)+animat.y
       #right_sensor_x = int(math.cos((animat.direction+90)*math.pi/180)*animat.radius)+animat.x
       #right_sensor_y = int(math.sin((animat.direction+90)*math.pi/180)*animat.radius)+animat.y
-
       # line of sight
       step_x = int(math.cos(animat.direction*math.pi / 180) * 10)
       step_y = int(math.sin(animat.direction*math.pi / 180) * 10)
@@ -125,10 +97,7 @@ class Environment:
 	los_y += step_y
 	sees = self.collision(los_x, los_y, others)
 
-      has_food = False
-      if animat.food:
-	has_food = True	
-      # inputs are normalized. Possibly not necessary
+      has_food = not (animat.food == None)
       animat.update((#self.scent(left_sensor_x, left_sensor_y, fruits),
 		     #self.scent(right_sensor_x, right_sensor_y, fruits),
 		     #self.scent(left_sensor_x, left_sensor_y, veggies),
@@ -136,8 +105,6 @@ class Environment:
 		     int(isinstance(sees, Fruit))*1000,
 		     int(isinstance(sees, Veggie))*1000,
 		     int(isinstance(sees, Animat))*1000,
-		     # int(isinstance(sees, FruitTree))*1000,
-		     # int(isinstance(sees, VeggieTree))*1000,
 		     int(isinstance(sees, Environment))*1000,
 		     int(has_food)*1000,
 		     animat.fruit_hunger,
@@ -151,34 +118,28 @@ class Environment:
 	obstacle = self.collision(new_x, new_y, others)
 	# check pickup
 	if isinstance(obstacle, Food):
-	  for source in sources:
-	    if obstacle in source.foods and animat.wants_to_pickup:
-                source.foods.remove(obstacle)
-		if self.train == True:
-		  if isinstance(obstacle, Fruit):
-		    source.spawn(Fruit(0,0))
-		  else:
-		    source.spawn(Veggie(0,0))
-                elif self.train != True:
-                  if isinstance(obstacle, Fruit):
-                    source.produceFood(Fruit(0,0))
-                  else:
-                    source.produceFood(Veggie(0,0))
-                animat.food = obstacle 
+	  if animat.wants_to_pickup:
+	    self.foods.remove(obstacle)
+	    if isinstance(obstacle, Fruit):
+	      self.produceFood(Fruit(0,0))
+            else:
+              self.produceFood(Veggie(0,0))
+            animat.food = obstacle 
        
-      	# finally move if possible
         if not obstacle:
 	  animat.x = new_x
 	  animat.y = new_y
 	else:
 	  animat.touching = True
+
       # putdown
       if animat.wants_to_putdown:
-	#if isinstance(animat.food, Fruit):
-	  #self.foods.append(Fruit(animat.x, animat.y))
-	#elif isinstance(animat.food, Veggie):
-	  #self.foods.append(Veggie(animat.x, animat.y))
+	if isinstance(animat.food, Fruit):
+	  self.foods.append(Fruit(animat.x, animat.y))
+	elif isinstance(animat.food, Veggie):
+	  self.foods.append(Veggie(animat.x, animat.y))
 	animat.food = None
+
       # DEATH 
       if animat not in self.deaths \
       and (animat.fruit_hunger <= 0 or animat.veggie_hunger <= 0):
@@ -191,7 +152,6 @@ class Environment:
       for a in fittest:
         if a.generation == fittest[0].generation:
           tmp = (fittest[0].generation, a.fruit_hunger + a.veggie_hunger ) 
-          # print tmp
           self.log.append( tmp )
       self.animats.remove(self.deaths.pop(0))
   
@@ -200,21 +160,38 @@ class Environment:
     if (y + Animat.radius) > self.height or (x + Animat.radius) > self.width  \
     or (x - Animat.radius) < 0 or (y - Animat.radius) < 0:
       return self
-    # check tree collision
- #    for tree in self.fruit_trees + self.veggie_trees:
- #      if pow(x - tree.x, 2) + pow(y - tree.y, 2) <= Tree.radius * Tree.radius:
-	# return tree
     # check food collision
-    for food in self.all_fruits() + self.all_veggies():
+    for food in self.foods:
       if pow(x - food.x, 2) + pow(y - food.y, 2) <= Food.radius * Food.radius:
 	return food
     # check animat-animat collision	
- #    for animat in animats:
- #      if pow(x - animat.x, 2) + pow(y - animat.y, 2) \
- #       <= Animat.radius * Animat.radius:
-	# return animat
+    for animat in animats:
+      if pow(x - animat.x, 2) + pow(y - animat.y, 2) \
+      <= Animat.radius * Animat.radius:
+	return animat
     # no collision
     return None
+
+  # load neural net states
+  def load(self):
+    if self.filename == "":
+      return []
+    try:
+      f = open(self.filename, 'r')
+      nets = pickle.load(f)
+      f.close()
+      return nets
+    except:
+      print "Could not load file " + self.filename
+      return []
+
+  # save neural net states
+  def save(self):
+    if self.filename != "":
+      f = open(self.filename, 'w')
+      nets = map(lambda a:a.net, self.animats)
+      pickle.dump(nets, f)
+      f.close()
 
 # Animats     
 class Animat:
@@ -299,7 +276,6 @@ class Animat:
     child = Animat(0,0, random.random() * 360)
     child.net = FeedForwardNetwork()
     child.generation = self.generation + 1
-    print child.generation
     # inherit parents layer types
     child.net.addInputModule(random.choice([self.net['in'], other.net['in']]))
     child.net.addModule(random.choice([self.net['hidden'],other.net['hidden']]))
@@ -321,8 +297,7 @@ class Food:
     self.x = x
     self.y = y
     self.bites = 10
-  # scent is inversely proportional to distance
-  # 0.0000000001 due to possibility of division by zero
+  # normalization to prevent divide by 0
   def scent(self, x, y):
     return 100.0 / (0.000001 + pow(self.x - x, 2) + pow(self.y - y, 2))
     
