@@ -1,4 +1,11 @@
-*.swp
-*.pyc
-*.dat
-.DS_Store
+#ignore all
+*
+
+# except
+!.gitignore
+!*.py
+!*.md
+!*.png
+
+# sub-directories
+!*/
