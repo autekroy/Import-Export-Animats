@@ -20,83 +20,72 @@ class Environment:
     self.num_animats = num_animats
     self.animats = []
     self.deaths = []
-    
     # produce foods
     for i in range(0,15):
-      self.produceFood(Fruit(0,0))
-      self.produceFood(Veggie(0,0))
-
+      fruit_pos = self.findSpace(Food.radius, (0, self.height / 20))
+      veggie_pos = self.findSpace(Food.radius, \
+				  (self.height - self.height / 20, self.height))
+      self.foods.append(Fruit(fruit_pos[0], fruit_pos[1]))
+      self.foods.append(Veggie(veggie_pos[0], veggie_pos[1]))
     # spawn animats
     saved_nets = self.load()
     for i in range(0, num_animats):
-      a = Animat(0, 0, random.random() * 360)
+      pos = self.findSpace(Animat.radius, (0, self.height))
+      a = Animat(pos[0], pos[1], random.random() * 360)
       a.generation = 1
       # old neural net
       if saved_nets:
         a.net = saved_nets.pop()
-      self.spawn(a)
+      self.animats.append(a)
     
   # get the sum of scents for a list of things
   def scent(self, x, y, things):
     return sum(map(lambda f:f.scent(x,y), things))
 
-  # places a new animat in a random location on the map
-  def spawn(self, thing):
-    spawns_x = map(lambda f:f*10, range(0, self.width/10))  # for 1 - 990
-    spawns_y = map(lambda f:f*10, range(0, self.height/10)) # 1 - 690
+  # line of sight
+  def line_of_sight(self, animat):
+    step_x = int(math.cos(animat.direction*math.pi / 180) * Animat.radius)
+    step_y = int(math.sin(animat.direction*math.pi / 180) * Animat.radius)
+    sees = False
+    while(not sees):
+      new_x = animat.x + step_x
+      new_y = animat.y + step_y
+      sees = self.collision(new_x, new_y, Animat.radius)
+    return sees
+
+  def findSpace(self, radius, bounds):
+    spawns_x = range(0, self.width, 10)
+    spawns_y = range(bounds[0], bounds[1], 10)
     random.shuffle(spawns_x)
     random.shuffle(spawns_y)
-    for i in spawns_x:
-      for j in spawns_y:
-	if not self.collision(i,j, self.animats):
-	  thing.x = i
-	  thing.y = j
-	  if isinstance(thing, Animat):
-	    self.animats.append(thing)
-	  else:
-	    self.foods.append(thing)
-	  return
-
-  # for randomly produce Food
-  def produceFood(self, thing):
-    spawns_x = map(lambda f:f*10, range(0, self.width))#[20:80]
-    spawns_y = map(lambda f:f*10, range(0, self.height/10))
-    # limit the Fruit on the buttom and Veggie on the top
-    if isinstance(thing, Fruit):
-      spawns_y = spawns_y[-10:]
-    else: # food is Veggie
-      spawns_y = spawns_y[1:10]
-
-    random.shuffle(spawns_x)
-    random.shuffle(spawns_y)
-    for i in spawns_x:
-      for j in spawns_y:
-        if not self.collision(i,j, self.animats):
-          thing.x = i
-          thing.y = j
-          self.foods.append(thing)
-          return
+    for x in spawns_x:
+      for y in spawns_y:
+	if not self.collision(x, y, radius):
+	  return (x, y)
 
   def update(self):
+    # if an animat died, the two fittest animats mate
+    while len(self.deaths) > 0: 
+      fittest = sorted(self.animats, key=lambda a: -a.fruit_hunger - a.veggie_hunger - a.age) #sorted is from small to large
+      pos = self.findSpace(Animat.radius, (0, self.height))
+      child = fittest[0].mate(fittest[1])
+      child.x = pos[0]
+      child.y = pos[1]
+      self.animats.append(child)
+      for a in fittest:
+        if a.generation == fittest[0].generation:
+          tmp = (fittest[0].generation, a.fruit_hunger + a.veggie_hunger ) 
+          self.log.append( tmp )
+      self.animats.remove(self.deaths.pop(0))
+    # update each animat
     for animat in self.animats:
       # Smell
       #left_sensor_x = int(math.cos((animat.direction-90)*math.pi/180)*animat.radius)+animat.x
       #left_sensor_y = int(math.sin((animat.direction-90)*math.pi/180)*animat.radius)+animat.y
       #right_sensor_x = int(math.cos((animat.direction+90)*math.pi/180)*animat.radius)+animat.x
       #right_sensor_y = int(math.sin((animat.direction+90)*math.pi/180)*animat.radius)+animat.y
-      # line of sight
-      step_x = int(math.cos(animat.direction*math.pi / 180) * 10)
-      step_y = int(math.sin(animat.direction*math.pi / 180) * 10)
-      los_x = animat.x
-      los_y = animat.y
-      sees = None
-      others = list(self.animats)
-      others.remove(animat)
-      while not sees:
-	los_x += step_x
-	los_y += step_y
-	sees = self.collision(los_x, los_y, others)
-
+      sees = self.line_of_sight(animat)
+      touching = self.collision(animat.x, animat.y, animat.radius)
       has_food = not (animat.food == None)
       animat.update((#self.scent(left_sensor_x, left_sensor_y, fruits),
 		     #self.scent(right_sensor_x, right_sensor_y, fruits),
@@ -109,29 +98,25 @@ class Environment:
 		     int(has_food)*1000,
 		     animat.fruit_hunger,
 		     animat.veggie_hunger,
-		     int(animat.touching)*1000))
+		     int(isinstance(touching, Fruit)*1000),
+		     int(isinstance(touching, Veggie)*1000)))
+      # moving
       if animat.wants_to_move:
-	# Where does it want to move?
-        step = 3
+	# collision
+        step = 2
 	new_x = animat.x + int(math.cos(animat.direction*math.pi / 180) * step)
-        new_y = animat.y + int(math.sin(animat.direction*math.pi / 180) * step)
-	obstacle = self.collision(new_x, new_y, others)
-	# check pickup
-	if isinstance(obstacle, Food):
-	  if animat.wants_to_pickup:
-	    self.foods.remove(obstacle)
-	    if isinstance(obstacle, Fruit):
-	      self.produceFood(Fruit(0,0))
-            else:
-              self.produceFood(Veggie(0,0))
-            animat.food = obstacle 
-       
-        if not obstacle:
+	new_y = animat.y + int(math.sin(animat.direction*math.pi / 180) * step)
+	self.animats.remove(animat)
+	obstacle = self.collision(new_x, new_y, Animat.radius)
+	if not obstacle or isinstance(obstacle, Food):
 	  animat.x = new_x
 	  animat.y = new_y
-	else:
-	  animat.touching = True
+	self.animats.append(animat)
 
+      # pickup
+      if isinstance(touching, Food) and animat.wants_to_pickup:
+	self.foods.remove(touching)
+        animat.food = touching
       # putdown
       if animat.wants_to_putdown:
 	if isinstance(animat.food, Fruit):
@@ -139,35 +124,31 @@ class Environment:
 	elif isinstance(animat.food, Veggie):
 	  self.foods.append(Veggie(animat.x, animat.y))
 	animat.food = None
-
+      # keep the food supply constant
+      if len(filter(lambda f:isinstance(f,Fruit), self.foods)) < 15:
+	pos = self.findSpace(Food.radius, (0, self.height / 20))
+	self.foods.append(Fruit(pos[0], pos[1]))
+      if len(filter(lambda f:isinstance(f,Veggie), self.foods)) < 15:
+	pos = self.findSpace(Food.radius, \
+			     (self.height - self.height / 20, self.height))
+	self.foods.append(Veggie(pos[0], pos[1]))
       # DEATH 
       if animat not in self.deaths \
       and (animat.fruit_hunger <= 0 or animat.veggie_hunger <= 0):
 	self.deaths.append(animat)
-
-    # if an animat dies, the two fittest animats mate
-    while len(self.deaths) > 0: 
-      fittest = sorted(self.animats, key=lambda a: -a.fruit_hunger - a.veggie_hunger - a.age) #sorted is from small to large
-      self.spawn(fittest[0].mate(fittest[1]))
-      for a in fittest:
-        if a.generation == fittest[0].generation:
-          tmp = (fittest[0].generation, a.fruit_hunger + a.veggie_hunger ) 
-          self.log.append( tmp )
-      self.animats.remove(self.deaths.pop(0))
-  
-  def collision(self, x, y, animats):
+      
+  def collision(self, x, y, radius):
     # check wall collision
-    if (y + Animat.radius) > self.height or (x + Animat.radius) > self.width  \
-    or (x - Animat.radius) < 0 or (y - Animat.radius) < 0:
+    if (y + radius) > self.height or (x + radius) > self.width  \
+    or (x - radius) < 0 or (y - radius) < 0:
       return self
     # check food collision
     for food in self.foods:
-      if pow(x - food.x, 2) + pow(y - food.y, 2) <= Food.radius * Food.radius:
+      if (x - food.x)**2 + (y - food.y)**2 <= Food.radius**2 + radius**2:
 	return food
     # check animat-animat collision	
-    for animat in animats:
-      if pow(x - animat.x, 2) + pow(y - animat.y, 2) \
-      <= Animat.radius * Animat.radius:
+    for animat in self.animats:
+      if (x - animat.x)**2 + (y - animat.y)**2 <= Animat.radius**2 + radius**2:
 	return animat
     # no collision
     return None
@@ -220,7 +201,7 @@ class Animat:
     # 6 output nodes: turn left/right, move forward, pickup, putdown, eat
     self.net = FeedForwardNetwork()
     # random layer types
-    inputs = [LinearLayer(8, name='in'), SigmoidLayer(8, name='in')]
+    inputs = [LinearLayer(9, name='in'), SigmoidLayer(8, name='in')]
     hiddens = [LinearLayer(11, name='hidden'), SigmoidLayer(11, name='hidden')]
     outputs = [LinearLayer(6, name='out'), SigmoidLayer(6, name='out')]
     #self.net.addInputModule(random.choice(inputs))
