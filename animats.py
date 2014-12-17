@@ -7,6 +7,7 @@ from pybrain.structure import RecurrentNetwork, FeedForwardNetwork, LinearLayer,
 
 class Environment:
   def __init__(self, num_animats, width, height, filename):
+    self.training_mode = False
     # environment
     self.width = width
     self.height = height
@@ -15,19 +16,13 @@ class Environment:
     # save state
     self.filename = filename
     # foods
+    self.num_foods = num_animats
     self.foods = []
+    self.produceFoods
     # animats
     self.num_animats = num_animats
     self.animats = []
     self.deaths = []
-    # produce foods
-    for i in range(0,15):
-      fruit_pos = self.findSpace(Food.radius, (0, self.height / 7))
-      veggie_pos = self.findSpace(Food.radius, \
-				  (self.height - self.height / 7, self.height))
-      self.foods.append(Fruit(fruit_pos[0], fruit_pos[1]))
-      self.foods.append(Veggie(veggie_pos[0], veggie_pos[1]))
-    # spawn animats
     saved_nets = self.load()
     for i in range(0, num_animats):
       pos = self.findSpace(Animat.radius, (0, self.height))
@@ -49,8 +44,8 @@ class Environment:
     step_y = int(math.sin(animat.direction*math.pi / 180) * 10)
     new_x = animat.x + step_x
     new_y = animat.y + step_y
-    sees = False
-    while(not sees):
+    sees = None
+    while not sees:
       new_x += step_x
       new_y += step_y
       sees = self.collision(new_x, new_y, Animat.radius)
@@ -66,6 +61,19 @@ class Environment:
       for y in spawns_y:
 	if not self.collision(x, y, radius):
 	  return (x, y)
+
+  def produceFoods(self, train=False):
+    fruit_bounds = (0, self.height / 7)
+    veggie_bounds =  (self.height - self.height / 7, self.height)
+    if self.training_mode:
+      fruit_bounds = (0, self.height)
+      veggie_bounds = (0, self.height)
+    while len(filter(lambda f:isinstance(f,Fruit), self.foods)) < self.num_foods:
+      pos = self.findSpace(Food.radius, fruit_bounds)
+      self.foods.append(Fruit(pos[0], pos[1]))
+    while len(filter(lambda f:isinstance(f,Veggie), self.foods)) < self.num_foods:
+      pos = self.findSpace(Food.radius, veggie_bounds)
+      self.foods.append(Veggie(pos[0], pos[1]))
 
   def update(self):
     # if an animat died, the two fittest animats mate
@@ -93,6 +101,8 @@ class Environment:
       #right_sensor_y = int(math.sin((animat.direction+90)*math.pi/180)*animat.radius)+animat.y
       sees = self.line_of_sight(animat)
       touching = self.collision(animat.x, animat.y, animat.radius)
+      sees = None
+      touching = None
       has_food = not (animat.food == None)
       animat.update((#self.scent(left_sensor_x, left_sensor_y, fruits),
 		     #self.scent(right_sensor_x, right_sensor_y, fruits),
@@ -132,13 +142,7 @@ class Environment:
 	  self.foods.append(Veggie(animat.x, animat.y))
 	animat.food = None
       # keep the food supply constant
-      if len(filter(lambda f:isinstance(f,Fruit), self.foods)) < 15:
-	pos = self.findSpace(Food.radius, (0, self.height / 7))
-	self.foods.append(Fruit(pos[0], pos[1]))
-      if len(filter(lambda f:isinstance(f,Veggie), self.foods)) < 15:
-	pos = self.findSpace(Food.radius, \
-			     (self.height - self.height / 7, self.height))
-	self.foods.append(Veggie(pos[0], pos[1]))
+      self.produceFoods()
       # DEATH 
       if animat not in self.deaths \
       and (animat.fruit_hunger <= 0 or animat.veggie_hunger <= 0):
@@ -151,11 +155,11 @@ class Environment:
       return self
     # check food collision
     for food in self.foods:
-      if (x - food.x)**2 + (y - food.y)**2 <= Food.radius**2 + radius**2:
+      if (x - food.x)**2 + (y - food.y)**2 <= Food.radius**2:
 	return food
     # check animat-animat collision	
     for animat in self.animats:
-      if (x - animat.x)**2 + (y - animat.y)**2 <= Animat.radius**2 + radius**2:
+      if (x - animat.x)**2 + (y - animat.y)**2 <= Animat.radius**2:
 	return animat
     # no collision
     return None
