@@ -22,9 +22,9 @@ class Environment:
     self.deaths = []
     # produce foods
     for i in range(0,15):
-      fruit_pos = self.findSpace(Food.radius, (0, self.height / 20))
+      fruit_pos = self.findSpace(Food.radius, (0, self.height / 7))
       veggie_pos = self.findSpace(Food.radius, \
-				  (self.height - self.height / 20, self.height))
+				  (self.height - self.height / 7, self.height))
       self.foods.append(Fruit(fruit_pos[0], fruit_pos[1]))
       self.foods.append(Veggie(veggie_pos[0], veggie_pos[1]))
     # spawn animats
@@ -44,13 +44,17 @@ class Environment:
 
   # line of sight
   def line_of_sight(self, animat):
-    step_x = int(math.cos(animat.direction*math.pi / 180) * Animat.radius)
-    step_y = int(math.sin(animat.direction*math.pi / 180) * Animat.radius)
+    self.animats.remove(animat)
+    step_x = int(math.cos(animat.direction*math.pi / 180) * 10)
+    step_y = int(math.sin(animat.direction*math.pi / 180) * 10)
+    new_x = animat.x + step_x
+    new_y = animat.y + step_y
     sees = False
     while(not sees):
-      new_x = animat.x + step_x
-      new_y = animat.y + step_y
+      new_x += step_x
+      new_y += step_y
       sees = self.collision(new_x, new_y, Animat.radius)
+    self.animats.append(animat)
     return sees
 
   def findSpace(self, radius, bounds):
@@ -66,7 +70,10 @@ class Environment:
   def update(self):
     # if an animat died, the two fittest animats mate
     while len(self.deaths) > 0: 
-      fittest = sorted(self.animats, key=lambda a: -a.fruit_hunger - a.veggie_hunger - a.age) #sorted is from small to large
+      fittest = sorted(self.animats, key=lambda a: 
+		       -a.fruits_eaten 
+		       -a.veggies_eaten
+		       -10 * min(a.fruits_eaten, a.veggies_eaten))
       pos = self.findSpace(Animat.radius, (0, self.height))
       child = fittest[0].mate(fittest[1])
       child.x = pos[0]
@@ -126,11 +133,11 @@ class Environment:
 	animat.food = None
       # keep the food supply constant
       if len(filter(lambda f:isinstance(f,Fruit), self.foods)) < 15:
-	pos = self.findSpace(Food.radius, (0, self.height / 20))
+	pos = self.findSpace(Food.radius, (0, self.height / 7))
 	self.foods.append(Fruit(pos[0], pos[1]))
       if len(filter(lambda f:isinstance(f,Veggie), self.foods)) < 15:
 	pos = self.findSpace(Food.radius, \
-			     (self.height - self.height / 20, self.height))
+			     (self.height - self.height / 7, self.height))
 	self.foods.append(Veggie(pos[0], pos[1]))
       # DEATH 
       if animat not in self.deaths \
@@ -180,7 +187,6 @@ class Animat:
 
   def __init__(self, x, y, direction):
     # position
-    self.age = 0
     self.generation = 0
     self.x = x
     self.y = y
@@ -195,6 +201,9 @@ class Animat:
     # hunger sensor
     self.fruit_hunger = 1000
     self.veggie_hunger = 1000
+    # keep track of foods eaten for fitness
+    self.fruits_eaten = 0
+    self.veggies_eaten = 0
     # neural net
     # 8 sensors: 2 for each smell: fruit, veggie; holding; colliding; 2 hungers
     # 3 hidden layers
@@ -222,8 +231,7 @@ class Animat:
   def update(self, sensors):
     decision = self.net.activate(sensors)
     # get a little hungry no matter what
-    self.age += .5
-    self.get_hungry(1)
+    self.get_hungry(.5)
     # move forward
     self.wants_to_move = (decision[0] > self.move_threshold)
     # rotate left 
@@ -241,10 +249,11 @@ class Animat:
     if (decision[5] > self.eat_threshold) and self.food:
       if isinstance(self.food, Fruit):
         self.fruit_hunger = 1000 if (self.fruit_hunger > 900) else (self.fruit_hunger + 100)
+	self.fruits_eaten += 1
       elif isinstance(self.food, Veggie):
         self.veggie_hunger = 1000 if (self.veggie_hunger > 900) else (self.veggie_hunger + 100)
+	self.veggies_eaten += 1
       self.food = None
-      self.pregnant = True
       
   def get_hungry(self, amount):
     self.fruit_hunger -= amount
