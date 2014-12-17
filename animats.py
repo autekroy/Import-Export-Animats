@@ -12,6 +12,8 @@ class Environment:
     self.height = height
     # record log
     self.log = []
+    self.moveLog = []
+
     # save state
     self.filename = filename
     # foods
@@ -147,13 +149,18 @@ class Environment:
 
     # if an animat dies, the two fittest animats mate
     while len(self.deaths) > 0: 
-      fittest = sorted(self.animats, key=lambda a: -a.fruit_hunger - a.veggie_hunger - a.age) #sorted is from small to large
-      self.spawn(fittest[0].mate(fittest[1]))
-      for a in fittest:
-        if a.generation == fittest[0].generation:
-          tmp = (fittest[0].generation, a.fruit_hunger + a.veggie_hunger ) 
-          self.log.append( tmp )
-      self.animats.remove(self.deaths.pop(0))
+      tmpLen = len(self.deaths)
+      fittest = sorted(self.animats, key=lambda a: -a.age)
+      # fittest = sorted(self.animats, key=lambda a: -a.fruit_hunger - a.veggie_hunger - a.age) #sorted is from small to large
+      for i in range(0, tmpLen ):
+        self.spawn(fittest[0].mate(fittest[1]))
+        tmpLog = (self.deaths[0].generation, self.deaths[0].age )
+        self.log.append( tmpLog )
+
+        tmpMoveLog = (self.deaths[0].generation, self.deaths[0].backForth)
+        self.moveLog.append( tmpMoveLog )
+        print str(tmpLog) + "  " + str(tmpMoveLog) + " "+str(self.deaths[0].veggie_hunger) + " "+str(self.deaths[0].fruit_hunger)
+        self.animats.remove(self.deaths.pop(0))
   
   def collision(self, x, y, animats):
     # check wall collision
@@ -203,6 +210,11 @@ class Animat:
     self.generation = 0
     self.x = x
     self.y = y
+
+    # number of going back and forth for different foods
+    self.backForth = 0
+    self.LastFood = None # the last food animat ate
+
     # orientation (0 - 359 degrees)
     self.direction = direction
     # carrying food
@@ -242,7 +254,7 @@ class Animat:
     decision = self.net.activate(sensors)
     # get a little hungry no matter what
     self.age += .5
-    self.get_hungry(1)
+    self.get_hungry(0.5)
     # move forward
     self.wants_to_move = (decision[0] > self.move_threshold)
     # rotate left 
@@ -260,8 +272,16 @@ class Animat:
     if (decision[5] > self.eat_threshold) and self.food:
       if isinstance(self.food, Fruit):
         self.fruit_hunger = 1000 if (self.fruit_hunger > 900) else (self.fruit_hunger + 100)
+        if isinstance(self.LastFood, Veggie): # the last food is different from eating food
+          self.backForth = self.backForth + 1
+          print self.backForth
+        self.LastFood = Fruit
       elif isinstance(self.food, Veggie):
         self.veggie_hunger = 1000 if (self.veggie_hunger > 900) else (self.veggie_hunger + 100)
+        if isinstance(self.LastFood, Fruit):
+          self.backForth = self.backForth + 1
+          print self.backForth
+        self.LastFood = Veggie
       self.food = None
       self.pregnant = True
       
@@ -286,7 +306,7 @@ class Animat:
     child.net.sortModules()
     # inherit parents connection weights
     for i in range(0,len(self.net.params)):
-      if random.random() > .05:
+      if random.random() > .1:
 	child.net.params[i] = random.choice([self.net.params[i], other.net.params[i]])
     return child
 
