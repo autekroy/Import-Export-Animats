@@ -7,7 +7,7 @@ from pybrain.structure import RecurrentNetwork, FeedForwardNetwork, LinearLayer,
 
 class Environment:
   def __init__(self, num_animats, width, height, filename):
-    self.training_mode = False
+    self.training_mode = True
     # environment
     self.width = width
     self.height = height
@@ -78,10 +78,8 @@ class Environment:
   def update(self):
     # if an animat died, the two fittest animats mate
     while len(self.deaths) > 0: 
-      fittest = sorted(self.animats, key=lambda a: 
-		       -a.fruits_eaten 
-		       -a.veggies_eaten
-		       -10 * min(a.fruits_eaten, a.veggies_eaten))
+      fittest = sorted(self.animats, key=lambda a: \
+				     -a.age -a.fruit_hunger - a.veggie_hunger)
       pos = self.findSpace(Animat.radius, (0, self.height))
       child = fittest[0].mate(fittest[1])
       child.x = pos[0]
@@ -99,11 +97,16 @@ class Environment:
       #left_sensor_y = int(math.sin((animat.direction-90)*math.pi/180)*animat.radius)+animat.y
       #right_sensor_x = int(math.cos((animat.direction+90)*math.pi/180)*animat.radius)+animat.x
       #right_sensor_y = int(math.sin((animat.direction+90)*math.pi/180)*animat.radius)+animat.y
+      # Sight
       sees = self.line_of_sight(animat)
-      touching = self.collision(animat.x, animat.y, animat.radius)
-      sees = None
-      touching = None
-      has_food = not (animat.food == None)
+      # Touch
+      step = 3
+      new_x = animat.x + int(math.cos(animat.direction*math.pi / 180) * step)
+      new_y = animat.y + int(math.sin(animat.direction*math.pi / 180) * step)
+      self.animats.remove(animat)
+      touching = self.collision(new_x, new_y, Animat.radius)
+      self.animats.append(animat)
+      # update
       animat.update((#self.scent(left_sensor_x, left_sensor_y, fruits),
 		     #self.scent(right_sensor_x, right_sensor_y, fruits),
 		     #self.scent(left_sensor_x, left_sensor_y, veggies),
@@ -112,23 +115,18 @@ class Environment:
 		     int(isinstance(sees, Veggie))*1000,
 		     int(isinstance(sees, Animat))*1000,
 		     int(isinstance(sees, Environment))*1000,
-		     int(has_food)*1000,
+		     int(isinstance(animat.food, Fruit))*1000,
+		     int(isinstance(animat.food, Veggie))*1000,
 		     animat.fruit_hunger,
 		     animat.veggie_hunger,
-		     int(isinstance(touching, Fruit)*1000),
-		     int(isinstance(touching, Veggie)*1000)))
+		     int(isinstance(touching, Fruit))*1000,
+		     int(isinstance(touching, Veggie))*1000,
+		     int(isinstance(touching, Animat))*1000,
+		     int(isinstance(touching, Environment))*1000))
       # moving
-      if animat.wants_to_move:
-	# collision
-        step = 2
-	new_x = animat.x + int(math.cos(animat.direction*math.pi / 180) * step)
-	new_y = animat.y + int(math.sin(animat.direction*math.pi / 180) * step)
-	self.animats.remove(animat)
-	obstacle = self.collision(new_x, new_y, Animat.radius)
-	if not obstacle or isinstance(obstacle, Food):
-	  animat.x = new_x
-	  animat.y = new_y
-	self.animats.append(animat)
+      if animat.wants_to_move and (not touching or isinstance(touching,Food)):
+	animat.x = new_x
+	animat.y = new_y
 
       # pickup
       if isinstance(touching, Food) and animat.wants_to_pickup:
@@ -145,7 +143,7 @@ class Environment:
       self.produceFoods()
       # DEATH 
       if animat not in self.deaths \
-      and (animat.fruit_hunger <= 0 or animat.veggie_hunger <= 0):
+      and (animat.fruit_hunger + animat.veggie_hunger <= 0):
 	self.deaths.append(animat)
       
   def collision(self, x, y, radius):
@@ -191,7 +189,7 @@ class Animat:
 
   def __init__(self, x, y, direction):
     # position
-    self.generation = 0
+    self.age = 0
     self.x = x
     self.y = y
     # orientation (0 - 359 degrees)
@@ -205,17 +203,11 @@ class Animat:
     # hunger sensor
     self.fruit_hunger = 1000
     self.veggie_hunger = 1000
-    # keep track of foods eaten for fitness
-    self.fruits_eaten = 0
-    self.veggies_eaten = 0
     # neural net
-    # 8 sensors: 2 for each smell: fruit, veggie; holding; colliding; 2 hungers
-    # 3 hidden layers
-    # 6 output nodes: turn left/right, move forward, pickup, putdown, eat
     self.net = FeedForwardNetwork()
     # random layer types
-    inputs = [LinearLayer(9, name='in'), SigmoidLayer(8, name='in')]
-    hiddens = [LinearLayer(11, name='hidden'), SigmoidLayer(11, name='hidden')]
+    inputs = [LinearLayer(12, name='in'), SigmoidLayer(8, name='in')]
+    hiddens = [LinearLayer(13, name='hidden'), SigmoidLayer(11, name='hidden')]
     outputs = [LinearLayer(6, name='out'), SigmoidLayer(6, name='out')]
     #self.net.addInputModule(random.choice(inputs))
     #self.net.addModule(random.choice(hiddens))
@@ -235,6 +227,7 @@ class Animat:
   def update(self, sensors):
     decision = self.net.activate(sensors)
     # get a little hungry no matter what
+    self.age += 1
     self.get_hungry(.5)
     # move forward
     self.wants_to_move = (decision[0] > self.move_threshold)
@@ -253,10 +246,8 @@ class Animat:
     if (decision[5] > self.eat_threshold) and self.food:
       if isinstance(self.food, Fruit):
         self.fruit_hunger = 1000 if (self.fruit_hunger > 900) else (self.fruit_hunger + 100)
-	self.fruits_eaten += 1
       elif isinstance(self.food, Veggie):
         self.veggie_hunger = 1000 if (self.veggie_hunger > 900) else (self.veggie_hunger + 100)
-	self.veggies_eaten += 1
       self.food = None
       
   def get_hungry(self, amount):
