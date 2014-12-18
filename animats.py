@@ -152,8 +152,14 @@ class Environment:
       tmpLen = len(self.deaths)
       fittest = sorted(self.animats, key=lambda a: -a.age)
       # fittest = sorted(self.animats, key=lambda a: -a.fruit_hunger - a.veggie_hunger - a.age) #sorted is from small to large
+
       for i in range(0, tmpLen ):
-        self.spawn(fittest[0].mate(fittest[1]))
+        pos = self.findSpace(Animat.radius, (0, self.height))
+        child = fittest[0].mate(fittest[1])
+        child.x = pos[0]
+        child.y = pos[1]
+        self.animats.append(child)
+
         tmpLog = (self.deaths[0].generation, self.deaths[0].age )
         self.log.append( tmpLog )
 
