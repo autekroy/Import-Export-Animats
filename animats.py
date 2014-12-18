@@ -81,18 +81,20 @@ class Environment:
   def update(self):
     # if an animat died, the two fittest animats mate
     while len(self.deaths) > 0: 
-      fittest = sorted(self.animats, key=lambda a: \
-				     -a.age -a.fruit_hunger - a.veggie_hunger)
+      fittest = sorted(self.animats, key=lambda a: -a.age)
       pos = self.findSpace(Animat.radius, (0, self.height))
       child = fittest[0].mate(fittest[1])
       child.x = pos[0]
       child.y = pos[1]
       self.animats.append(child)
-      for a in fittest:
-        if a.generation == fittest[0].generation:
-          tmp = (fittest[0].generation, a.fruit_hunger + a.veggie_hunger ) 
-          self.log.append( tmp )
+      # log dead animats stats
+      tmpLog = (self.deaths[0].generation, self.deaths[0].age )
+      self.log.append( tmpLog )
+      tmpMoveLog = (self.deaths[0].generation, self.deaths[0].backForth)
+      self.moveLog.append( tmpMoveLog )
+      print str(tmpLog) + "  " + str(tmpMoveLog) + " "+str(self.deaths[0].veggie_hunger) + " "+str(self.deaths[0].fruit_hunger)
       self.animats.remove(self.deaths.pop(0))
+
     # update each animat
     for animat in self.animats:
       # Smell
@@ -144,29 +146,9 @@ class Environment:
       self.produceFoods()
       # DEATH 
       if animat not in self.deaths \
-      and (animat.fruit_hunger <= 0 or animat.veggie_hunger <= 0):
+      and (animat.fruit_hunger + animat.veggie_hunger <= 0):
 	self.deaths.append(animat)
-
-    # if an animat dies, the two fittest animats mate
-    while len(self.deaths) > 0: 
-      tmpLen = len(self.deaths)
-      fittest = sorted(self.animats, key=lambda a: -a.age)
-      # fittest = sorted(self.animats, key=lambda a: -a.fruit_hunger - a.veggie_hunger - a.age) #sorted is from small to large
-
-      for i in range(0, tmpLen ):
-        pos = self.findSpace(Animat.radius, (0, self.height))
-        child = fittest[0].mate(fittest[1])
-        child.x = pos[0]
-        child.y = pos[1]
-        self.animats.append(child)
-
-        tmpLog = (self.deaths[0].generation, self.deaths[0].age )
-        self.log.append( tmpLog )
-
-        tmpMoveLog = (self.deaths[0].generation, self.deaths[0].backForth)
-        self.moveLog.append( tmpMoveLog )
-        print str(tmpLog) + "  " + str(tmpMoveLog) + " "+str(self.deaths[0].veggie_hunger) + " "+str(self.deaths[0].fruit_hunger)
-        self.animats.remove(self.deaths.pop(0))
+        
 
   def collision(self, x, y, radius, without=None):
     # check wall collision
@@ -267,13 +249,13 @@ class Animat:
     # eat
     if (decision[5] > self.eat_threshold) and self.food:
       if isinstance(self.food, Fruit):
-        self.fruit_hunger = 1000 if (self.fruit_hunger > 950) else (self.fruit_hunger + 50)
+        self.fruit_hunger = 1000 if (self.fruit_hunger > 800) else (self.fruit_hunger + 200)
         if isinstance(self.LastFood, Veggie): # the last food is different from eating food
           self.backForth = self.backForth + 1
           print self.backForth
         self.LastFood = Fruit
       elif isinstance(self.food, Veggie):
-        self.veggie_hunger = 1000 if (self.veggie_hunger > 950) else (self.veggie_hunger + 50)
+        self.veggie_hunger = 1000 if (self.veggie_hunger > 800) else (self.veggie_hunger + 200)
         if isinstance(self.LastFood, Fruit):
           self.backForth = self.backForth + 1
           print self.backForth
