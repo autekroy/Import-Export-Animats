@@ -8,7 +8,7 @@ from pybrain.structure import RecurrentNetwork, FeedForwardNetwork, LinearLayer,
 class Environment:
   def __init__(self, num_animats, width, height, filename):
     # training mode (foods everywhere)
-    self.training_mode = True
+    self.training_mode = False
     # environment
     self.width = width
     self.height = height
@@ -144,7 +144,7 @@ class Environment:
       self.produceFoods()
       # DEATH 
       if animat not in self.deaths \
-      and (animat.fruit_hunger + animat.veggie_hunger <= 0):
+      and (animat.fruit_hunger <= 0 or animat.veggie_hunger <= 0):
 	self.deaths.append(animat)
 
     # if an animat dies, the two fittest animats mate
@@ -249,7 +249,7 @@ class Animat:
   def update(self, sensors):
     decision = self.net.activate(sensors)
     # get a little hungry no matter what
-    self.age += 1
+    self.age += 0.5
     self.get_hungry(.5)
     # move forward
     self.wants_to_move = (decision[0] > self.move_threshold)
