@@ -7,6 +7,8 @@ from pybrain.structure import RecurrentNetwork, FeedForwardNetwork, LinearLayer,
 
 class Environment:
   def __init__(self, num_animats, width, height, filename):
+    # training mode (foods everywhere)
+    self.training_mode = False
     # environment
     self.width = width
     self.height = height
