@@ -7,7 +7,6 @@ from pybrain.structure import RecurrentNetwork, FeedForwardNetwork, LinearLayer,
 
 class Environment:
   def __init__(self, num_animats, width, height, filename):
-    self.training_mode = True
     # environment
     self.width = width
     self.height = height
@@ -39,7 +38,6 @@ class Environment:
 
   # line of sight
   def line_of_sight(self, animat):
-    self.animats.remove(animat)
     step_x = int(math.cos(animat.direction*math.pi / 180) * 10)
     step_y = int(math.sin(animat.direction*math.pi / 180) * 10)
     new_x = animat.x + step_x
@@ -48,8 +46,7 @@ class Environment:
     while not sees:
       new_x += step_x
       new_y += step_y
-      sees = self.collision(new_x, new_y, Animat.radius)
-    self.animats.append(animat)
+      sees = self.collision(new_x, new_y, Animat.radius, animat)
     return sees
 
   def findSpace(self, radius, bounds):
@@ -103,9 +100,7 @@ class Environment:
       step = 3
       new_x = animat.x + int(math.cos(animat.direction*math.pi / 180) * step)
       new_y = animat.y + int(math.sin(animat.direction*math.pi / 180) * step)
-      self.animats.remove(animat)
-      touching = self.collision(new_x, new_y, Animat.radius)
-      self.animats.append(animat)
+      touching = self.collision(new_x, new_y, Animat.radius, animat)
       # update
       animat.update((#self.scent(left_sensor_x, left_sensor_y, fruits),
 		     #self.scent(right_sensor_x, right_sensor_y, fruits),
@@ -146,7 +141,7 @@ class Environment:
       and (animat.fruit_hunger + animat.veggie_hunger <= 0):
 	self.deaths.append(animat)
       
-  def collision(self, x, y, radius):
+  def collision(self, x, y, radius, without=None):
     # check wall collision
     if (y + radius) > self.height or (x + radius) > self.width  \
     or (x - radius) < 0 or (y - radius) < 0:
@@ -155,8 +150,11 @@ class Environment:
     for food in self.foods:
       if (x - food.x)**2 + (y - food.y)**2 <= Food.radius**2:
 	return food
-    # check animat-animat collision	
-    for animat in self.animats:
+    # check animat-animat collision
+    animats = list(self.animats)
+    if without:
+      animats.remove(without)
+    for animat in animats:
       if (x - animat.x)**2 + (y - animat.y)**2 <= Animat.radius**2:
 	return animat
     # no collision
@@ -205,16 +203,9 @@ class Animat:
     self.veggie_hunger = 1000
     # neural net
     self.net = FeedForwardNetwork()
-    # random layer types
-    inputs = [LinearLayer(12, name='in'), SigmoidLayer(8, name='in')]
-    hiddens = [LinearLayer(13, name='hidden'), SigmoidLayer(11, name='hidden')]
-    outputs = [LinearLayer(6, name='out'), SigmoidLayer(6, name='out')]
-    #self.net.addInputModule(random.choice(inputs))
-    #self.net.addModule(random.choice(hiddens))
-    #self.net.addOutputModule(random.choice(outputs))
-    self.net.addInputModule(inputs[0])
-    self.net.addModule(hiddens[1])
-    self.net.addOutputModule(outputs[0])
+    self.net.addInputModule(SigmoidLayer(12, name='in'))
+    self.net.addModule(SigmoidLayer(20, name='hidden'))
+    self.net.addOutputModule(LinearLayer(6, name='out'))
     self.net.addConnection(FullConnection(self.net['in'], self.net['hidden']))
     self.net.addConnection(FullConnection(self.net['hidden'], self.net['out']))
     self.net.sortModules()
@@ -245,9 +236,9 @@ class Animat:
     # eat
     if (decision[5] > self.eat_threshold) and self.food:
       if isinstance(self.food, Fruit):
-        self.fruit_hunger = 1000 if (self.fruit_hunger > 900) else (self.fruit_hunger + 100)
+        self.fruit_hunger = 1000 if (self.fruit_hunger > 950) else (self.fruit_hunger + 50)
       elif isinstance(self.food, Veggie):
-        self.veggie_hunger = 1000 if (self.veggie_hunger > 900) else (self.veggie_hunger + 100)
+        self.veggie_hunger = 1000 if (self.veggie_hunger > 950) else (self.veggie_hunger + 50)
       self.food = None
       
   def get_hungry(self, amount):
@@ -256,22 +247,11 @@ class Animat:
 
   # returns a child with a genetic combination of neural net weights of 2 parents
   def mate(self, other):
-    self.pregnant = False
-    other.pregnant = False
     child = Animat(0,0, random.random() * 360)
-    child.net = FeedForwardNetwork()
-    child.generation = self.generation + 1
-    # inherit parents layer types
-    child.net.addInputModule(random.choice([self.net['in'], other.net['in']]))
-    child.net.addModule(random.choice([self.net['hidden'],other.net['hidden']]))
-    child.net.addOutputModule(random.choice([self.net['out'], other.net['out']]))
-    # finalize the network
-    child.net.addConnection(FullConnection(child.net['in'], child.net['hidden']))
-    child.net.addConnection(FullConnection(child.net['hidden'], child.net['out']))
-    child.net.sortModules()
+    child.generation = min(self.generation, other.generation) + 1
     # inherit parents connection weights
     for i in range(0,len(self.net.params)):
-      if random.random() > .05:
+      if random.random() > .1:
 	child.net.params[i] = random.choice([self.net.params[i], other.net.params[i]])
     return child
 
