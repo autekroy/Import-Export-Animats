@@ -38,8 +38,10 @@ class Simulation:
 
     self.env = animats.Environment(num_animats, width, height, saved_nets)
 
-  def update(self):
-    self.env.update()
+  def update(self, speed):
+    # update model a certain number of times
+    for i in range(speed):
+      self.env.update()
 
     # for future 'pause' button, the parameter take milliseconds pause time
     # pygame.time.wait()
@@ -91,4 +93,4 @@ if __name__ == "__main__":
 	map(lambda r: fLog.write( str(r) + '\n'), simulation.env.log)
 	fLog.close()
         sys.exit()
-    simulation.update()
+    simulation.update(10)

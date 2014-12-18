@@ -8,7 +8,7 @@ from pybrain.structure import RecurrentNetwork, FeedForwardNetwork, LinearLayer,
 class Environment:
   def __init__(self, num_animats, width, height, filename):
     # training mode (foods everywhere)
-    self.training_mode = False
+    self.training_mode = True
     # environment
     self.width = width
     self.height = height
@@ -22,16 +22,18 @@ class Environment:
     self.produceFoods
     # animats
     self.num_animats = num_animats
-    self.animats = []
     self.deaths = []
-    saved_nets = self.load()
-    for i in range(0, num_animats):
+    self.animats = []
+    saved_states = self.load()
+    while len(self.animats) < num_animats:
       pos = self.findSpace(Animat.radius, (0, self.height))
-      a = Animat(pos[0], pos[1], random.random() * 360)
-      a.generation = 1
-      # old neural net
-      if saved_nets:
-        a.net = saved_nets.pop()
+      if len(saved_states) > 0:
+	a = saved_states.pop(0)
+	a.x = pos[0]
+	a.y = pos[1]
+      else:
+	a = Animat(pos[0], pos[1], random.random() * 360)
+	a.generation = 0
       self.animats.append(a)
     
   # get the sum of scents for a list of things
@@ -162,15 +164,15 @@ class Environment:
     # no collision
     return None
 
-  # load neural net states
+  # load animat states
   def load(self):
     if self.filename == "":
       return []
     try:
       f = open(self.filename, 'r')
-      nets = pickle.load(f)
+      animats = pickle.load(f)
       f.close()
-      return nets
+      return animats
     except:
       print "Could not load file " + self.filename
       return []
@@ -179,8 +181,7 @@ class Environment:
   def save(self):
     if self.filename != "":
       f = open(self.filename, 'w')
-      nets = map(lambda a:a.net, self.animats)
-      pickle.dump(nets, f)
+      pickle.dump(self.animats, f)
       f.close()
 
 # Animats     
@@ -205,8 +206,8 @@ class Animat:
     self.veggie_hunger = 1000
     # neural net
     self.net = FeedForwardNetwork()
-    self.net.addInputModule(SigmoidLayer(12, name='in'))
-    self.net.addModule(SigmoidLayer(20, name='hidden'))
+    self.net.addInputModule(LinearLayer(12, name='in'))
+    self.net.addModule(SigmoidLayer(13, name='hidden'))
     self.net.addOutputModule(LinearLayer(6, name='out'))
     self.net.addConnection(FullConnection(self.net['in'], self.net['hidden']))
     self.net.addConnection(FullConnection(self.net['hidden'], self.net['out']))
