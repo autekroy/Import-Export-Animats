@@ -23,16 +23,12 @@ class Simulation:
     
     # pictures resources
     self.animat_sprite  = pygame.image.load("resources/animat.png")
-    self.fruitTree      = pygame.image.load("resources/dekutree.png")
-    self.veggieTree     = pygame.image.load("resources/dekutree.png")
     self.fruit          = pygame.image.load("resources/banana.png")
     self.veggie         = pygame.image.load("resources/tomato.png")
 
     # modify pictures to appropriate sizes
     self.animat_sprite = pygame.transform.scale(self.animat_sprite, (32,32))
     self.bg            = pygame.transform.scale(self.bg, (1000, 700))
-    self.fruitTree     = pygame.transform.scale(self.fruitTree, (80, 100))
-    self.veggieTree    = pygame.transform.scale(self.veggieTree, (80, 100))
     self.fruit         = pygame.transform.scale(self.fruit, (26, 26))
     self.veggie        = pygame.transform.scale(self.veggie, (26, 26))
 
