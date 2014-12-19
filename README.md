@@ -7,8 +7,8 @@ Import-Export-Animats
 ### [Project Report](https://docs.google.com/document/d/1Xxe5j6ea0gBwbp8WcYVyXQ59dWXuPNT9ltiuf0Fl0E8)
 
 #### Dependencies:
-* pybrain
-* pygame
+* [pybrain](http://www.pybrain.org/)
+* [pygame](http://www.pygame.org/)
 
 ------------------------------------------------------------
 #### How To Run:
