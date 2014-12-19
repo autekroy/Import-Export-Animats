@@ -6,6 +6,8 @@ Import-Export-Animats
 ### [Project Presentation](https://docs.google.com/presentation/d/1nOzJIDy3O5cS1DvDtgHL4e2LRKycsBFy2hNM26x0vPE)
 ### [Project Report](https://docs.google.com/document/d/1Xxe5j6ea0gBwbp8WcYVyXQ59dWXuPNT9ltiuf0Fl0E8)
 
+#### [Simulation Short Video](http://youtu.be/CIyTv1KNkvs)
+
 #### Dependencies:
 * [pybrain](http://www.pybrain.org/)
 * [pygame](http://www.pygame.org/)
