@@ -15,7 +15,6 @@ class Environment:
     # record log
     self.log = []
     self.moveLog = []
-
     # save state
     self.filename = filename
     # foods
@@ -38,10 +37,6 @@ class Environment:
 	a.generation = 0
       self.animats.append(a)
     
-  # get the sum of scents for a list of things
-  def scent(self, x, y, things):
-    return sum(map(lambda f:f.scent(x,y), things))
-
   # line of sight
   def line_of_sight(self, animat):
     step_x = int(math.cos(animat.direction*math.pi / 180) * 10)
@@ -81,7 +76,7 @@ class Environment:
   def update(self):
     # if an animat died, the two fittest animats mate
     while len(self.deaths) > 0: 
-      fittest = sorted(self.animats, key=lambda a: -a.age)
+      fittest = sorted(self.animats, key=lambda a: -a.avg_fruit_hunger -a.avg_veggie_hunger)
       pos = self.findSpace(Animat.radius, (0, self.height))
       child = fittest[0].mate(fittest[1])
       child.x = pos[0]
@@ -92,61 +87,41 @@ class Environment:
       self.log.append( tmpLog )
       tmpMoveLog = (self.deaths[0].generation, self.deaths[0].backForth)
       self.moveLog.append( tmpMoveLog )
-      print str(tmpLog) + "  " + str(tmpMoveLog) + " "+str(self.deaths[0].veggie_hunger) + " "+str(self.deaths[0].fruit_hunger)
       self.animats.remove(self.deaths.pop(0))
 
     # update each animat
     for animat in self.animats:
-      # Smell
-      #left_sensor_x = int(math.cos((animat.direction-90)*math.pi/180)*animat.radius)+animat.x
-      #left_sensor_y = int(math.sin((animat.direction-90)*math.pi/180)*animat.radius)+animat.y
-      #right_sensor_x = int(math.cos((animat.direction+90)*math.pi/180)*animat.radius)+animat.x
-      #right_sensor_y = int(math.sin((animat.direction+90)*math.pi/180)*animat.radius)+animat.y
       # Sight
-      sees = self.line_of_sight(animat)
+      animat.sees = self.line_of_sight(animat)
       # Touch
       step = 3
-      new_x = animat.x + int(math.cos(animat.direction*math.pi / 180) * step)
-      new_y = animat.y + int(math.sin(animat.direction*math.pi / 180) * step)
-      touching = self.collision(new_x, new_y, Animat.radius, animat)
+      step_x = int(math.cos(animat.direction*math.pi / 180) * step)
+      step_y = int(math.sin(animat.direction*math.pi / 180) * step)
+      animat.touching = self.collision(animat.x + step_x, animat.y + step_y, Animat.radius, animat)
       # update
-      animat.update((#self.scent(left_sensor_x, left_sensor_y, fruits),
-		     #self.scent(right_sensor_x, right_sensor_y, fruits),
-		     #self.scent(left_sensor_x, left_sensor_y, veggies),
-		     #self.scent(right_sensor_x, right_sensor_y, veggies),
-		     int(isinstance(sees, Fruit))*1000,
-		     int(isinstance(sees, Veggie))*1000,
-		     int(isinstance(sees, Animat))*1000,
-		     int(isinstance(sees, Environment))*1000,
-		     int(isinstance(animat.food, Fruit))*1000,
-		     int(isinstance(animat.food, Veggie))*1000,
-		     animat.fruit_hunger,
-		     animat.veggie_hunger,
-		     int(isinstance(touching, Fruit))*1000,
-		     int(isinstance(touching, Veggie))*1000,
-		     int(isinstance(touching, Animat))*1000,
-		     int(isinstance(touching, Environment))*1000))
+      animat.update()
       # moving
-      if animat.wants_to_move and (not touching or isinstance(touching,Food)):
-	animat.x = new_x
-	animat.y = new_y
+      if animat.wants_to_move and \
+	(not animat.touching or isinstance(animat.touching,Food)):
+	animat.x = step_x + animat.x
+	animat.y = step_y + animat.y
 
       # pickup
-      if isinstance(touching, Food) and animat.wants_to_pickup:
-	self.foods.remove(touching)
-        animat.food = touching
+      if isinstance(animat.touching, Food) and animat.wants_to_pickup:
+	self.foods.remove(animat.touching)
+        animat.food = animat.touching
       # putdown
       if animat.wants_to_putdown:
 	if isinstance(animat.food, Fruit):
-	  self.foods.append(Fruit(animat.x, animat.y))
+	  self.foods.append(Fruit(animat.x - (step_x*10), animat.y - (step_y*10)))
 	elif isinstance(animat.food, Veggie):
-	  self.foods.append(Veggie(animat.x, animat.y))
+	  self.foods.append(Veggie(animat.x - (step_x*10), animat.y - (step_y*10)))
 	animat.food = None
       # keep the food supply constant
       self.produceFoods()
       # DEATH 
       if animat not in self.deaths \
-      and (animat.fruit_hunger + animat.veggie_hunger <= 0):
+      and (animat.fruit_hunger + animat.veggie_hunger < 1000):
 	self.deaths.append(animat)
         
 
@@ -194,26 +169,25 @@ class Animat:
   radius = 30
 
   def __init__(self, x, y, direction):
-    # position
     self.age = 0
+    # position
     self.x = x
     self.y = y
-
     # number of going back and forth for different foods
     self.backForth = 0
     self.LastFood = None # the last food animat ate
-
     # orientation (0 - 359 degrees)
     self.direction = direction
     # carrying food
     self.food = None
-    # ready to mate
-    self.pregnant = False
     # touching anything
-    self.touching = False
+    self.touching = None
+    self.sees = None
     # hunger sensor
-    self.fruit_hunger = 1000
-    self.veggie_hunger = 1000
+    self.fruit_hunger = 2000
+    self.veggie_hunger = 2000
+    self.avg_fruit_hunger = 0
+    self.avg_veggie_hunger = 0
     # neural net
     self.net = FeedForwardNetwork()
     self.net.addInputModule(LinearLayer(12, name='in'))
@@ -224,14 +198,34 @@ class Animat:
     self.net.sortModules()
     # thresholds for deciding an action
     self.move_threshold = 0
-    self.pickup_threshold = -1
+    self.pickup_threshold = 0
     self.putdown_threshold = 0
-    self.eat_threshold = -4
+    self.eat_threshold = 0
     
-  def update(self, sensors):
+  def update(self):
+    sensors = (2000*int(isinstance(self.sees, Fruit) or \
+		        (isinstance(self.sees, Animat) and \
+	                 isinstance(self.sees.food, Fruit))),
+	       2000*int(isinstance(self.sees, Veggie) or \
+	                (isinstance(self.sees, Animat) and \
+		         isinstance(self.sees.food, Veggie))),
+	       2000*int(isinstance(self.sees, Animat)),
+	       2000*int(isinstance(self.sees, Environment)),
+	       2000*int(isinstance(self.food, Fruit)),
+	       2000*int(isinstance(self.food, Veggie)),
+	       self.fruit_hunger,
+	       self.veggie_hunger,
+	       2000*int(isinstance(self.touching, Fruit) or \
+		        (isinstance(self.touching, Animat) and \
+		         isinstance(self.touching.food, Fruit))),
+	       2000*int(isinstance(self.touching, Veggie) or \
+		        (isinstance(self.touching, Animat) and \
+		         isinstance(self.touching.food, Veggie))),
+	       2000*int(isinstance(self.touching, Animat)),
+	       2000*int(isinstance(self.touching, Environment)))
     decision = self.net.activate(sensors)
     # get a little hungry no matter what
-    self.age += 0.5
+    self.age += 1
     self.get_hungry(.5)
     # move forward
     self.wants_to_move = (decision[0] > self.move_threshold)
@@ -249,14 +243,16 @@ class Animat:
     # eat
     if (decision[5] > self.eat_threshold) and self.food:
       if isinstance(self.food, Fruit):
-        self.fruit_hunger = 1000 if (self.fruit_hunger > 800) else (self.fruit_hunger + 200)
-        if isinstance(self.LastFood, Veggie): # the last food is different from eating food
+	self.fruit_hunger = 2000 if (self.fruit_hunger > 1800) else (self.fruit_hunger + 200)
+        self.avg_fruit_hunger = (self.avg_fruit_hunger + self.fruit_hunger) / 2
+	if isinstance(self.LastFood, Veggie): # the last food is different from eating food
           self.backForth = self.backForth + 1
           print self.backForth
         self.LastFood = Fruit
       elif isinstance(self.food, Veggie):
-        self.veggie_hunger = 1000 if (self.veggie_hunger > 800) else (self.veggie_hunger + 200)
-        if isinstance(self.LastFood, Fruit):
+        self.veggie_hunger = 2000 if (self.veggie_hunger > 1800) else (self.veggie_hunger + 200)
+        self.avg_veggie_hunger = (self.avg_veggie_hunger + self.veggie_hunger) / 2
+	if isinstance(self.LastFood, Fruit):
           self.backForth = self.backForth + 1
           print self.backForth
         self.LastFood = Veggie
@@ -283,10 +279,6 @@ class Food:
     self.x = x
     self.y = y
     self.bites = 10
-  # normalization to prevent divide by 0
-  def scent(self, x, y):
-    return 100.0 / (0.000001 + pow(self.x - x, 2) + pow(self.y - y, 2))
-    
 
 class Veggie(Food): pass
 class Fruit(Food): pass
