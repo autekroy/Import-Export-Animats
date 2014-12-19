@@ -7,7 +7,7 @@ Import-Export-Animats
 ### [Google Docs Project Report](https://docs.google.com/document/d/1Xxe5j6ea0gBwbp8WcYVyXQ59dWXuPNT9ltiuf0Fl0E8)
 
 #### Dependencies:
-* pyBrain
+* pybrain
 * pygame
 
 ------------------------------------------------------------
@@ -16,7 +16,7 @@ Import-Export-Animats
 * Use a save file for animats: python simulation.py filename.dat
 
 #### Quick Model Training Example
-import animats
-e = animats.Environment(10, 1000, 700, "example.dat")
-e.update() # repeat as desired
-e.save()
+* import animats
+* e = animats.Environment(10, 1000, 700, "example.dat")
+* e.update() # repeat as desired
+* e.save()
