@@ -1,10 +1,12 @@
 #!/usr/bin/python
+# Animats environment model
 import pickle
 import random
 import math
 import numpy
 from pybrain.structure import RecurrentNetwork, FeedForwardNetwork, LinearLayer, SigmoidLayer, FullConnection
 
+# Environment which contains animats and foods
 class Environment:
   def __init__(self, num_animats, width, height, filename):
     # training mode (foods everywhere)
@@ -37,7 +39,7 @@ class Environment:
 	a.generation = 0
       self.animats.append(a)
     
-  # line of sight
+  # animat line of sight
   def line_of_sight(self, animat):
     step_x = int(math.cos(animat.direction*math.pi / 180) * 10)
     step_y = int(math.sin(animat.direction*math.pi / 180) * 10)
@@ -49,7 +51,8 @@ class Environment:
       new_y += step_y
       sees = self.collision(new_x, new_y, Animat.radius, animat)
     return sees
-
+  
+  # find a random spot to spawn animats
   def findSpace(self, radius, bounds):
     spawns_x = range(0, self.width, 10)
     spawns_y = range(bounds[0], bounds[1], 10)
@@ -59,7 +62,7 @@ class Environment:
       for y in spawns_y:
 	if not self.collision(x, y, radius):
 	  return (x, y)
-
+  # return the amount of food in the environment to a fixed state
   def produceFoods(self, train=False):
     fruit_bounds = (0, self.height / 7)
     veggie_bounds =  (self.height - self.height / 7, self.height)
@@ -82,44 +85,41 @@ class Environment:
       child.x = pos[0]
       child.y = pos[1]
       self.animats.append(child)
-      # log dead animats stats
+      # log experiment data for survival
       tmpLog = (self.deaths[0].generation, self.deaths[0].age )
       self.log.append( tmpLog )
       tmpMoveLog = (self.deaths[0].generation, self.deaths[0].backForth)
       self.moveLog.append( tmpMoveLog )
       self.animats.remove(self.deaths.pop(0))
 
-    # update each animat
     for animat in self.animats:
-      # Sight
+      # update sensory information from environment
       animat.sees = self.line_of_sight(animat)
-      # Touch
       step = 3
       step_x = int(math.cos(animat.direction*math.pi / 180) * step)
       step_y = int(math.sin(animat.direction*math.pi / 180) * step)
       animat.touching = self.collision(animat.x + step_x, animat.y + step_y, Animat.radius, animat)
-      # update
+      
+      # update animat response to environment
       animat.update()
-      # moving
+
+      # perform animat decided action in environment
       if animat.wants_to_move and \
 	(not animat.touching or isinstance(animat.touching,Food)):
 	animat.x = step_x + animat.x
 	animat.y = step_y + animat.y
-
-      # pickup
       if isinstance(animat.touching, Food) and animat.wants_to_pickup:
 	self.foods.remove(animat.touching)
         animat.food = animat.touching
-      # putdown
       if animat.wants_to_putdown:
 	if isinstance(animat.food, Fruit):
 	  self.foods.append(Fruit(animat.x - (step_x*10), animat.y - (step_y*10)))
 	elif isinstance(animat.food, Veggie):
 	  self.foods.append(Veggie(animat.x - (step_x*10), animat.y - (step_y*10)))
 	animat.food = None
-      # keep the food supply constant
+      
+      # control the amount of food and animats in the environment
       self.produceFoods()
-      # DEATH 
       if animat not in self.deaths \
       and (animat.fruit_hunger + animat.veggie_hunger < 1000):
 	self.deaths.append(animat)
@@ -144,7 +144,7 @@ class Environment:
     # no collision
     return None
 
-  # load animat states
+  # load saved animat states into environment
   def load(self):
     if self.filename == "":
       return []
@@ -157,7 +157,6 @@ class Environment:
       print "Could not load file " + self.filename
       return []
 
-  # save neural net states
   def save(self):
     if self.filename != "":
       f = open(self.filename, 'w')
@@ -224,13 +223,16 @@ class Animat:
 	       2000*int(isinstance(self.touching, Animat)),
 	       2000*int(isinstance(self.touching, Environment)))
     decision = self.net.activate(sensors)
-    # get a little hungry no matter what
+    
     self.age += 1
     self.get_hungry(.5)
+    
     # move forward
     self.wants_to_move = (decision[0] > self.move_threshold)
+    
     # rotate left 
     self.direction -= decision[1]
+    
     # rotate right 
     self.direction += decision[2]
 
@@ -252,7 +254,7 @@ class Animat:
       elif isinstance(self.food, Veggie):
         self.veggie_hunger = 2000 if (self.veggie_hunger > 1800) else (self.veggie_hunger + 200)
         self.avg_veggie_hunger = (self.avg_veggie_hunger + self.veggie_hunger) / 2
-	if isinstance(self.LastFood, Fruit):
+	if isinstance(self.LastFood, Fruit): # the last food is different from eating food
           self.backForth = self.backForth + 1
           print self.backForth
         self.LastFood = Veggie
